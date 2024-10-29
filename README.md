@@ -48,5 +48,3 @@ The Auto Face Capture feature is designed to provide real-time feedback, ensurin
 - Launch the app, position yourself in front of the camera, and follow the on-screen instructions. The app will guide you with real-time feedback on alignment, lighting, and other parameters until all conditions are met for a successful capture.
 
 ---
-
-Let me know if you'd like to include any additional sections!
