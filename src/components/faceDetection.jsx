@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { FaceDetection } from "@mediapipe/face_detection";
 import { Camera } from "@mediapipe/camera_utils";
 import {
@@ -6,10 +6,49 @@ import {
 	hasMultipleFaces,
 	isFaceDistanceValid,
 	isFaceCentered,
-	areEyesOpen,
+	isHeadOrientationValid,
 } from "../utils/validations"; // Import your validations
 
 const FaceDetectionComponent = ({ videoRef, onValidFace, onInvalidFace }) => {
+	const [feedback, setFeedback] = useState(""); // Store feedback for UI display
+	const [validFace, setValidFace] = useState(false); // Track valid/invalid face
+	const [countdown, setCountdown] = useState(null); // Countdown state
+	const timerRef = useRef(null); // Ref to store the timer ID
+
+	// Starts the countdown
+	const startCountdown = (duration) => {
+		setCountdown(duration);
+		if (timerRef.current) clearInterval(timerRef.current);
+
+		timerRef.current = setInterval(() => {
+			setCountdown((prev) => {
+				if (prev > 1) {
+					return prev - 1;
+				} else {
+					clearInterval(timerRef.current);
+					captureFrame(); // Automatically capture the frame
+					return null; // Stop the countdown
+				}
+			});
+		}, 1000);
+	};
+
+	// Stops the countdown
+	const stopCountdown = () => {
+		setCountdown(null);
+		setCountdown(null);
+		if (timerRef.current) {
+			clearInterval(timerRef.current);
+		}
+	};
+
+	// Capture Image Function
+	const captureFrame = () => {
+		setFeedback("Frame captured successfully!");
+		// Add your frame capture logic here
+		console.log("Frame captured!");
+	};
+
 	useEffect(() => {
 		if (videoRef.current) {
 			const faceDetector = new FaceDetection({
@@ -28,41 +67,63 @@ const FaceDetectionComponent = ({ videoRef, onValidFace, onInvalidFace }) => {
 
 				// Perform validations on the frame and face
 				const { isTooDark, isTooBright } = isTooDarkOrTooBright(video);
-				console.log("Face detection results:", results.detections);
+				//console.log("Face detection results:", results.detections);
 				if (isTooDark) {
-					onInvalidFace(
+					setFeedback(
 						"The image is too dark. Please adjust the lighting."
 					);
-					return;
+					setValidFace(false);
 				}
 
 				if (isTooBright) {
-					onInvalidFace(
+					setFeedback(
 						"The image is too bright. Please adjust the lighting."
 					);
+					setValidFace(false);
 					return;
 				}
 
 				// Check for multiple faces
 				if (hasMultipleFaces(results.detections)) {
-					onInvalidFace(
+					setFeedback(
 						"Multiple faces detected. Only one face is allowed."
 					);
+					setValidFace(false);
 					return;
 				}
 
 				if (results.detections.length === 1) {
 					const face = results.detections[0];
+					const landmarks = results.detections[0].landmarks;
 
 					// Validate face distance (too far or too close)
 					const distanceValidation = isFaceDistanceValid(face);
 					if (distanceValidation === "too far") {
-						onInvalidFace("Face is too far. Please move closer.");
+						setFeedback(
+							"Multiple faces detected. Only one face is allowed."
+						);
+						setValidFace(false);
 						return;
 					}
 
 					if (distanceValidation === "too close") {
-						onInvalidFace("Face is too close. Please move back.");
+						setFeedback("Face is too close. Please move back.");
+						setValidFace(false);
+						return;
+					}
+
+					// Checking for head Orientation
+					if (
+						!isHeadOrientationValid(
+							landmarks,
+							video.videoWidth,
+							video.videoHeight
+						)
+					) {
+						setFeedback(
+							"Head orientation is invalid. Adjust your face."
+						);
+						setValidFace(false);
 						return;
 					}
 
@@ -74,26 +135,32 @@ const FaceDetectionComponent = ({ videoRef, onValidFace, onInvalidFace }) => {
 							video.videoHeight
 						)
 					) {
-						onInvalidFace(
+						setFeedback(
 							"Face is not centered. Please adjust your position."
 						);
-						return;
-					}
-
-					// Validate if the eyes are open
-					if (!areEyesOpen(face)) {
-						onInvalidFace(
-							"Eyes are closed. Please open your eyes."
-						);
+						setValidFace(false);
 						return;
 					}
 
 					// If all validations pass, trigger onValidFace
-					onValidFace();
+					setFeedback(
+						"Face is in the correct position! Hold still..."
+					);
+					setValidFace((prevState) => {
+						if (!prevState) {
+							// Only start the countdown when the face becomes valid
+							startCountdown(3);
+						}
+						return true;
+					});
 				} else {
-					onInvalidFace(
+					setFeedback(
 						"No face detected. Please position your face properly."
 					);
+					setValidFace((prevState) => {
+						if (prevState) stopCountdown();
+						return false;
+					});
 				}
 			};
 
@@ -117,7 +184,15 @@ const FaceDetectionComponent = ({ videoRef, onValidFace, onInvalidFace }) => {
 		}
 	}, [videoRef]);
 
-	return null;
+	return (
+		<div>
+			<p style={{ color: validFace ? "green" : "red" }}>{feedback}</p>
+
+			{countdown !== null && (
+				<p style={{ color: "blue" }}>Capturing in {countdown}...</p>
+			)}
+		</div>
+	);
 };
 
 export default FaceDetectionComponent;

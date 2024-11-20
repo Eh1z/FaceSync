@@ -105,8 +105,8 @@ export const isFaceCentered = (face, videoWidth, videoHeight) => {
 	const { xCenter, yCenter, width, height } = face.boundingBox;
 
 	// Calculate the center of the face based on relative bounding box
-	const faceCenterX = xCenter + width / 2;
-	const faceCenterY = yCenter + height / 2;
+	const faceCenterX = xCenter;
+	const faceCenterY = yCenter;
 
 	// Convert relative center to absolute pixel coordinates
 	const faceCenterXInPixels = faceCenterX * videoWidth;
@@ -117,11 +117,12 @@ export const isFaceCentered = (face, videoWidth, videoHeight) => {
 	const verticalCenter = videoHeight / 2;
 
 	// Define acceptable tolerance for centering (in percentage of video dimensions)
-	const tolerance = 0.1; // 10% tolerance
+	const tolerance = 0.2; // 20% tolerance
 	const horizontalTolerance = horizontalCenter * tolerance;
 	const verticalTolerance = verticalCenter * tolerance;
 
 	// Check if the face center is within the tolerance range of the video center
+
 	return (
 		Math.abs(faceCenterXInPixels - horizontalCenter) <
 			horizontalTolerance &&
@@ -129,23 +130,33 @@ export const isFaceCentered = (face, videoWidth, videoHeight) => {
 	);
 };
 
-/**
- * Checks if the eyes are open based on face landmarks.
- * @param {Object} face - The face detection result containing landmarks.
- * @returns {boolean} True if both eyes are open, false otherwise.
- */
-export const areEyesOpen = (face) => {
-	if (!face || !face.landmarks) {
+export const isHeadOrientationValid = (landmarks, videoWidth, videoHeight) => {
+	if (!landmarks || landmarks.length === 0) {
 		return false;
 	}
 
-	const leftEye = face.landmarks.find((point) => point.name === "left_eye");
-	const rightEye = face.landmarks.find((point) => point.name === "right_eye");
+	// Example landmarks: left eye, right eye, and nose
+	const leftEye = landmarks[1];
+	const rightEye = landmarks[0];
+	const nose = landmarks[2];
 
-	if (!leftEye || !rightEye) return false;
+	// Calculate relative positions
+	const eyeDistanceX = Math.abs(leftEye.x - rightEye.x);
+	const eyeDistanceY = Math.abs(leftEye.y - rightEye.y);
 
-	const leftEyeOpen = leftEye.y > face.boundingBox.top + 0.1;
-	const rightEyeOpen = rightEye.y > face.boundingBox.top + 0.1;
+	// Detect yaw (horizontal head turn)
+	const yawThreshold = 0.1; // Allow a small deviation
+	const isYawValid = eyeDistanceY / eyeDistanceX < yawThreshold;
 
-	return leftEyeOpen && rightEyeOpen;
+	// Detect pitch (up/down tilt) using the nose relative to eyes
+	const pitchThreshold = 0.2; // Allowable nose deviation
+	const isPitchValid =
+		Math.abs(nose.y - (leftEye.y + rightEye.y) / 2) < pitchThreshold;
+
+	// Check for roll (side tilt) using eye alignment
+	const rollThreshold = 0.1;
+	const isRollValid = Math.abs(leftEye.y - rightEye.y) < rollThreshold;
+
+	// Face orientation is valid if all criteria are met
+	return isYawValid && isPitchValid && isRollValid;
 };
