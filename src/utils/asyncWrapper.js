@@ -1,14 +1,10 @@
 export const asyncWrapper = (func) => {
 	return async (...args) => {
-		return new Promise((resolve, reject) => {
-			setTimeout(() => {
-				try {
-					const result = func(...args);
-					resolve(result);
-				} catch (error) {
-					reject(error);
-				}
-			}, 0);
-		});
+		try {
+			const result = await func(...args); // Await the async function here
+			return result; // Return the result when the promise resolves
+		} catch (error) {
+			throw error; // Throw the error to be handled by the caller
+		}
 	};
 };

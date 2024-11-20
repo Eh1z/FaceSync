@@ -28,7 +28,7 @@ const FaceDetectionComponent = ({ videoRef, onValidFace, onInvalidFace }) => {
 
 				// Perform validations on the frame and face
 				const { isTooDark, isTooBright } = isTooDarkOrTooBright(video);
-
+				console.log("Face detection results:", results.detections);
 				if (isTooDark) {
 					onInvalidFace(
 						"The image is too dark. Please adjust the lighting."

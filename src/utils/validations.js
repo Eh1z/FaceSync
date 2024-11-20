@@ -1,15 +1,17 @@
-// Constants for brightness thresholds
 const TOO_DARK_THRESHOLD = 60;
 const TOO_BRIGHT_THRESHOLD = 200;
 
-// Get the brightness of the video frame
+/**
+ * Calculates the brightness of a video frame by averaging the RGB values of the pixels.
+ * @param {HTMLCanvasElement} canvas - The canvas element used to draw the video frame.
+ * @returns {number|null} The calculated brightness value, or null if calculation fails.
+ */
 export const getFrameBrightness = (canvas) => {
 	const ctx = canvas.getContext("2d");
 
 	if (!ctx) return null;
 
 	let colorSum = 0;
-
 	const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	const data = imageData.data;
 	let r, g, b, avg;
@@ -18,7 +20,6 @@ export const getFrameBrightness = (canvas) => {
 		r = data[x];
 		g = data[x + 1];
 		b = data[x + 2];
-
 		avg = Math.floor((r + g + b) / 3);
 		colorSum += avg;
 	}
@@ -27,7 +28,11 @@ export const getFrameBrightness = (canvas) => {
 	return brightness;
 };
 
-// Check if the frame is too dark or too bright
+/**
+ * Determines if the video frame is too dark or too bright based on predefined thresholds.
+ * @param {HTMLVideoElement} video - The video element from which to extract the frame.
+ * @returns {Object} An object indicating whether the frame is too dark or too bright.
+ */
 export const isTooDarkOrTooBright = (video) => {
 	const canvas = document.createElement("canvas");
 	const ctx = canvas.getContext("2d");
@@ -53,60 +58,94 @@ export const isTooDarkOrTooBright = (video) => {
 	return { isTooDark, isTooBright };
 };
 
-// Check if there are multiple faces detected
+/**
+ * Checks if more than one face is detected in the given detections array.
+ * @param {Array} detections - The array of face detection results.
+ * @returns {boolean} True if more than one face is detected, false otherwise.
+ */
 export const hasMultipleFaces = (detections) => {
 	return detections.length > 1;
 };
 
-// Check if the face is at a valid distance
+/**
+ * Validates the distance of the face in the frame based on the bounding box width.
+ * @param {Object} face - The face detection result.
+ * @returns {string} A string indicating whether the face is too close, too far, or valid.
+ */
 export const isFaceDistanceValid = (face) => {
-	const distance = face.locationData.relativeBoundingBox.width;
+	if (!face || !face.boundingBox) {
+		return "invalid";
+	}
+
+	const distance = face.boundingBox.width;
+
 	if (distance < 0.1) {
-		return "too close"; // Too close to the camera
+		return "too close";
 	}
 	if (distance > 0.5) {
-		return "too far"; // Too far from the camera
+		return "too far";
 	}
-	return "valid"; // Valid distance
+	return "valid";
 };
 
-// Check if the face is centered in the frame
+/**
+ * Checks if the face is centered in the video frame, within a defined tolerance.
+ * @param {Object} face - The face detection result.
+ * @param {number} videoWidth - The width of the video frame.
+ * @param {number} videoHeight - The height of the video frame.
+ * @returns {boolean} True if the face is within the tolerance of the center, false otherwise.
+ */
 export const isFaceCentered = (face, videoWidth, videoHeight) => {
-	const faceCenterX =
-		face.locationData.relativeBoundingBox.left +
-		face.locationData.relativeBoundingBox.width / 2;
-	const faceCenterY =
-		face.locationData.relativeBoundingBox.top +
-		face.locationData.relativeBoundingBox.height / 2;
+	// Ensure all necessary data is available
+	if (!face || !face.boundingBox) {
+		return false; // Return false if the data is missing
+	}
 
+	// Get the relative bounding box of the face
+	const { xCenter, yCenter, width, height } = face.boundingBox;
+
+	// Calculate the center of the face based on relative bounding box
+	const faceCenterX = xCenter + width / 2;
+	const faceCenterY = yCenter + height / 2;
+
+	// Convert relative center to absolute pixel coordinates
+	const faceCenterXInPixels = faceCenterX * videoWidth;
+	const faceCenterYInPixels = faceCenterY * videoHeight;
+
+	// Find the center of the video frame
 	const horizontalCenter = videoWidth / 2;
 	const verticalCenter = videoHeight / 2;
 
-	// Define a tolerance threshold for center alignment (adjust as needed)
-	const tolerance = 0.1;
+	// Define acceptable tolerance for centering (in percentage of video dimensions)
+	const tolerance = 0.1; // 10% tolerance
 	const horizontalTolerance = horizontalCenter * tolerance;
 	const verticalTolerance = verticalCenter * tolerance;
 
+	// Check if the face center is within the tolerance range of the video center
 	return (
-		Math.abs(faceCenterX * videoWidth - horizontalCenter) <
+		Math.abs(faceCenterXInPixels - horizontalCenter) <
 			horizontalTolerance &&
-		Math.abs(faceCenterY * videoHeight - verticalCenter) < verticalTolerance
+		Math.abs(faceCenterYInPixels - verticalCenter) < verticalTolerance
 	);
 };
 
-// Check if the eyes are open based on the face landmarks (simplified check)
+/**
+ * Checks if the eyes are open based on face landmarks.
+ * @param {Object} face - The face detection result containing landmarks.
+ * @returns {boolean} True if both eyes are open, false otherwise.
+ */
 export const areEyesOpen = (face) => {
-	const leftEye = face.keypoints.find((point) => point.name === "left_eye");
-	const rightEye = face.keypoints.find((point) => point.name === "right_eye");
+	if (!face || !face.landmarks) {
+		return false;
+	}
 
-	// A simple check if the eye landmarks are visible (more sophisticated checks can be added here)
+	const leftEye = face.landmarks.find((point) => point.name === "left_eye");
+	const rightEye = face.landmarks.find((point) => point.name === "right_eye");
+
 	if (!leftEye || !rightEye) return false;
 
-	// You can use more detailed thresholds to check if the eyes are open by comparing eye landmarks
-	const leftEyeOpen =
-		leftEye.y > face.locationData.relativeBoundingBox.top + 0.1;
-	const rightEyeOpen =
-		rightEye.y > face.locationData.relativeBoundingBox.top + 0.1;
+	const leftEyeOpen = leftEye.y > face.boundingBox.top + 0.1;
+	const rightEyeOpen = rightEye.y > face.boundingBox.top + 0.1;
 
 	return leftEyeOpen && rightEyeOpen;
 };
