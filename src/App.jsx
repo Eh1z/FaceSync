@@ -5,8 +5,8 @@ import FaceDetectionComponent from "./components/faceDetection";
 const App = () => {
 	const videoRef = useRef(null);
 	return (
-		<div style={{ textAlign: "center", margin: "20px" }}>
-			<h1>Real-Time Face Detection</h1>
+		<div className="w-full flex flex-col items-center py-8 gap-16">
+			<h1 className="text-5xl">Real-Time Face Detection</h1>
 			<WebcamFeed>
 				<FaceDetectionComponent videoRef={videoRef} />
 			</WebcamFeed>

@@ -9,23 +9,29 @@ import {
 	isHeadOrientationValid,
 } from "../utils/validations"; // Import your validations
 
-const FaceDetectionComponent = ({ videoRef, onValidFace, onInvalidFace }) => {
+const FaceDetectionComponent = ({ videoRef }) => {
 	const [feedback, setFeedback] = useState(""); // Store feedback for UI display
 	const [validFace, setValidFace] = useState(false); // Track valid/invalid face
 	const [countdown, setCountdown] = useState(null); // Countdown state
+	const [capturedImage, setCapturedImage] = useState(null); // Captured image state
 	const timerRef = useRef(null); // Ref to store the timer ID
+	const canvasRef = useRef(null); // Ref to the canvas element for capturing
+	const countdownActiveRef = useRef(false); // Tracks countdown status
 
 	// Starts the countdown
 	const startCountdown = (duration) => {
+		if (countdownActiveRef.current || capturedImage) return; // Prevent redundant countdowns
+		countdownActiveRef.current = true;
 		setCountdown(duration);
 		if (timerRef.current) clearInterval(timerRef.current);
 
 		timerRef.current = setInterval(() => {
 			setCountdown((prev) => {
-				if (prev > 1) {
+				if (prev > 1 && validFace) {
 					return prev - 1;
 				} else {
 					clearInterval(timerRef.current);
+					countdownActiveRef.current = false;
 					captureFrame(); // Automatically capture the frame
 					return null; // Stop the countdown
 				}
@@ -36,19 +42,45 @@ const FaceDetectionComponent = ({ videoRef, onValidFace, onInvalidFace }) => {
 	// Stops the countdown
 	const stopCountdown = () => {
 		setCountdown(null);
-		setCountdown(null);
-		if (timerRef.current) {
-			clearInterval(timerRef.current);
+		if (timerRef.current) clearInterval(timerRef.current);
+		countdownActiveRef.current = false;
+	};
+
+	// Capture current video frame
+	const captureFrame = () => {
+		const videoElement = videoRef.current;
+		const canvas = canvasRef.current;
+
+		if (videoElement && canvas) {
+			const context = canvas.getContext("2d");
+			canvas.width = videoElement.videoWidth;
+			canvas.height = videoElement.videoHeight;
+
+			context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+			const imageData = canvas.toDataURL("image/png");
+			setCapturedImage(imageData);
+			setFeedback("Frame captured successfully!");
+			stopCountdown();
 		}
 	};
 
-	// Capture Image Function
-	const captureFrame = () => {
-		setFeedback("Frame captured successfully!");
-		// Add your frame capture logic here
-		console.log("Frame captured!");
+	// Retake the image
+	const retakeImage = () => {
+		setCapturedImage(null);
+		setFeedback("Please position your face for another capture.");
 	};
 
+	// Handle `validFace` changes
+	useEffect(() => {
+		if (validFace) {
+			startCountdown(3);
+		} else {
+			stopCountdown();
+		}
+	}, [validFace]);
+
+	// Handles Face Detection Logic
 	useEffect(() => {
 		if (videoRef.current) {
 			const faceDetector = new FaceDetection({
@@ -63,6 +95,10 @@ const FaceDetectionComponent = ({ videoRef, onValidFace, onInvalidFace }) => {
 
 			// Wrap your async function
 			const detectFacesAsync = async (results) => {
+				if (capturedImage !== null) {
+					// If an image is already captured, skip further face detection
+					return;
+				}
 				const video = videoRef.current;
 
 				// Perform validations on the frame and face
@@ -146,21 +182,12 @@ const FaceDetectionComponent = ({ videoRef, onValidFace, onInvalidFace }) => {
 					setFeedback(
 						"Face is in the correct position! Hold still..."
 					);
-					setValidFace((prevState) => {
-						if (!prevState) {
-							// Only start the countdown when the face becomes valid
-							startCountdown(3);
-						}
-						return true;
-					});
+					setValidFace(true);
 				} else {
 					setFeedback(
 						"No face detected. Please position your face properly."
 					);
-					setValidFace((prevState) => {
-						if (prevState) stopCountdown();
-						return false;
-					});
+					setValidFace(false);
 				}
 			};
 
@@ -186,11 +213,46 @@ const FaceDetectionComponent = ({ videoRef, onValidFace, onInvalidFace }) => {
 
 	return (
 		<div>
-			<p style={{ color: validFace ? "green" : "red" }}>{feedback}</p>
+			<div className="flex justify-center items-center w-full ">
+				<p
+					className={`p-3 bg-[#FED09B]  transition rounded-lg mt-5 text-sm ${
+						validFace && "bg-green-300"
+					}`}
+				>
+					{feedback}
+				</p>
+			</div>
 
 			{countdown !== null && (
-				<p style={{ color: "blue" }}>Capturing in {countdown}...</p>
+				<p className="text-6xl  absolute top-[35%] left-[50%] text-white">
+					{countdown}
+				</p>
 			)}
+
+			{/* Display captured image or live video */}
+			{capturedImage && (
+				<div className="absolute top-0 left-0 w-full h-screen flex flex-col justify-center items-center gap-8 bg-white">
+					<img
+						src={capturedImage}
+						alt="Captured Frame"
+						style={{ width: "100%", maxWidth: "400px" }}
+					/>
+					<div className=" flex gap-8 items-center justify-center py-16">
+						<button
+							className="py-2 px-8 bg-blue-800 rounded text-white"
+							onClick={retakeImage}
+						>
+							Retake
+						</button>
+						<button className="py-2 px-8 bg-blue-800 rounded text-white">
+							Proceed
+						</button>
+					</div>
+				</div>
+			)}
+
+			{/* Canvas used for capturing image */}
+			<canvas ref={canvasRef} style={{ display: "none" }} />
 		</div>
 	);
 };
