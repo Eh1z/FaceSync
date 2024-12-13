@@ -1,8 +1,9 @@
 // src/components/Register.jsx
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import CameraComponent from "./Camera";
 import { addUser } from "../api";
-import { toast } from "react-toastify"; // For toast notifications
+import { toast } from "react-toastify"; // Import toast
+import LoadingSpinner from "./LoadingSpinner"; // Import loading spinner
 
 const Register = () => {
 	const [step, setStep] = useState("form"); // 'form', 'capturing', 'preview'
@@ -10,57 +11,89 @@ const Register = () => {
 	const [email, setEmail] = useState("");
 	const [capturedImage, setCapturedImage] = useState(null);
 	const [faceLandmarks, setFaceLandmarks] = useState(null);
+	const [capturedFaceLandmarks, setCapturedFaceLandmarks] = useState(null); // New state variable
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const cameraRef = useRef(null);
 
-	// Handle starting the capture process
+	// Memoize the handleFaceDetected function
+	const handleFaceDetected = useCallback(
+		(landmarks) => {
+			console.log(`Face detected in step: ${step}`);
+			if (step !== "capturing") {
+				console.log("Ignoring face detection outside capturing step.");
+				return; // Only handle during 'capturing' step
+			}
+			if (landmarks) {
+				setFaceLandmarks(landmarks);
+				console.log("Face landmarks updated.");
+			} else {
+				setFaceLandmarks(null);
+				console.log("No face detected.");
+			}
+		},
+		[step]
+	);
+
 	const handleStartCapture = () => {
 		if (!name.trim() || !email.trim()) {
 			toast.error("Please enter both name and email.");
+			console.log("Start Capture: Missing name or email.");
 			return;
 		}
+		console.log("Starting capture process.");
 		setStep("capturing");
 		// Start the camera
 		if (cameraRef.current) {
-			cameraRef.current.startCamera();
+			cameraRef.current.startCamera && cameraRef.current.startCamera();
+			console.log("Start Capture: Camera start invoked.");
 		}
 	};
 
-	// Handle capturing the image
 	const handleCapture = () => {
+		console.log("Capturing image.");
 		if (cameraRef.current) {
 			const imageData = cameraRef.current.capture();
 			if (imageData) {
 				if (faceLandmarks) {
+					setCapturedFaceLandmarks(faceLandmarks); // Store captured landmarks
 					setCapturedImage(imageData);
 					setStep("preview");
+					console.log("Image captured and moving to preview step.");
 					// Stop the camera after capturing
-					cameraRef.current.stopCamera();
+					cameraRef.current.stopCamera &&
+						cameraRef.current.stopCamera();
+					console.log("Capture: Camera stop invoked.");
 				} else {
 					toast.error("No face detected. Please try again.");
+					console.log("Capture failed: No face detected.");
 				}
 			} else {
 				toast.error("Failed to capture image. Please try again.");
+				console.log("Capture failed: Image data is null.");
 			}
 		}
 	};
 
-	// Handle retaking the image
 	const handleRetake = () => {
+		console.log("Retaking image.");
 		setCapturedImage(null);
 		setFaceLandmarks(null);
+		setCapturedFaceLandmarks(null); // Reset captured landmarks
 		setStep("capturing");
 		// Restart the camera for retaking
 		if (cameraRef.current) {
-			cameraRef.current.startCamera();
+			cameraRef.current.startCamera && cameraRef.current.startCamera();
+			console.log("Retake: Camera start invoked.");
 		}
 	};
 
-	// Handle confirming the registration
 	const handleConfirm = async () => {
-		if (!capturedImage || !faceLandmarks) {
+		console.log("Confirming registration.");
+		if (!capturedImage || !capturedFaceLandmarks) {
+			// Use capturedFaceLandmarks
 			toast.error("No image or face data to submit.");
+			console.log("Confirm failed: Missing image or face data.");
 			return;
 		}
 
@@ -68,34 +101,39 @@ const Register = () => {
 		const user = {
 			name: name.trim(),
 			email: email.trim(),
-			faceData: faceLandmarks, // Store facial landmarks
+			faceData: capturedFaceLandmarks, // Use capturedFaceLandmarks
 		};
 
 		try {
 			await addUser(user);
 			toast.success("User registered successfully!");
+			console.log("User registered successfully.");
 			// Reset form
 			setName("");
 			setEmail("");
 			setCapturedImage(null);
 			setFaceLandmarks(null);
+			setCapturedFaceLandmarks(null); // Reset captured landmarks
 			setStep("form");
+			console.log("Registration form reset.");
 		} catch (error) {
 			console.error("Error registering user:", error);
 			toast.error("Failed to register user.");
 		} finally {
 			setIsSubmitting(false);
+			console.log("Registration submission complete.");
 		}
 	};
 
-	// Handle face detection from CameraComponent
-	const handleFaceDetected = (landmarks) => {
-		if (landmarks) {
-			setFaceLandmarks(landmarks);
-		} else {
-			setFaceLandmarks(null);
+	// useEffect to stop the camera when transitioning to 'preview' step
+	useEffect(() => {
+		if (step === "preview") {
+			if (cameraRef.current) {
+				cameraRef.current.stopCamera && cameraRef.current.stopCamera();
+				console.log("Preview: Camera stopped.");
+			}
 		}
-	};
+	}, [step]);
 
 	return (
 		<div className="w-full max-w-md bg-white shadow-md rounded-lg p-6 mx-auto">
@@ -214,6 +252,7 @@ const Register = () => {
 							{isSubmitting ? "Submitting..." : "Confirm"}
 						</button>
 					</div>
+					{isSubmitting && <LoadingSpinner />}
 				</>
 			)}
 		</div>

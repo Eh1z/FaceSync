@@ -14,8 +14,13 @@ const CameraComponent = forwardRef(({ onFaceDetected }, ref) => {
 	const cameraInstance = useRef(null);
 	const faceMesh = useRef(null);
 
-	// Expose methods to control the camera
 	useImperativeHandle(ref, () => ({
+		capture: () => {
+			if (canvasRef.current) {
+				return canvasRef.current.toDataURL("image/png");
+			}
+			return null;
+		},
 		startCamera: () => {
 			if (cameraInstance.current) {
 				cameraInstance.current.start();
@@ -92,6 +97,16 @@ const CameraComponent = forwardRef(({ onFaceDetected }, ref) => {
 			height: 480,
 		});
 
+		// Start the camera
+		cameraInstance.current
+			.start()
+			.then(() => {
+				console.log("Camera started successfully");
+			})
+			.catch((error) => {
+				console.error("Camera failed to start:", error);
+			});
+
 		// Cleanup on unmount
 		return () => {
 			if (cameraInstance.current) {
@@ -106,7 +121,7 @@ const CameraComponent = forwardRef(({ onFaceDetected }, ref) => {
 			<h2 className="text-xl font-semibold mb-4 text-gray-700">
 				Camera Feed
 			</h2>
-			<div className="relative">
+			<div className="relative border-2 border-blue-500">
 				<video
 					ref={videoRef}
 					className="w-full h-auto rounded-md"
@@ -116,7 +131,7 @@ const CameraComponent = forwardRef(({ onFaceDetected }, ref) => {
 				></video>
 				<canvas
 					ref={canvasRef}
-					className="absolute top-0 left-0 w-full h-full rounded-md"
+					className="absolute top-0 left-0 w-full h-full rounded-md border-2 border-red-500"
 					width="640"
 					height="480"
 				></canvas>
