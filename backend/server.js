@@ -47,16 +47,24 @@ process.on("SIGINT", async () => {
 });
 
 // Define Schemas
-const userSchema = new mongoose.Schema({
-	name: String,
-	email: String,
-	faceData: Array, // Store facial landmarks or embeddings
-});
+const userSchema = new mongoose.Schema(
+	{
+		name: String,
+		email: String,
+		faceData: Array, // Store facial landmarks or embeddings
+	},
+	{ timestamps: true }
+);
 
-const attendanceSchema = new mongoose.Schema({
-	userId: mongoose.Schema.Types.ObjectId,
-	date: { type: Date, default: Date.now },
-});
+const attendanceSchema = new mongoose.Schema(
+	{
+		userId: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "User",
+		},
+	},
+	{ timestamps: true }
+);
 
 // Define Models
 const User = mongoose.model("User", userSchema);
@@ -87,8 +95,11 @@ app.post("/attendance", async (req, res) => {
 
 // Get attendance records
 app.get("/attendance", async (req, res) => {
-	const records = await Attendance.find().populate("userId");
+	const records = await Attendance.find()
+		.populate("userId")
+		.sort({ createdAt: "desc" });
 	res.json(records);
+	console.log("====>", records);
 });
 
 // Start Server

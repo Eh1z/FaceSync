@@ -84,7 +84,7 @@ const CameraComponent = forwardRef(({ onFaceDetected }, ref) => {
 			canvasCtx.restore();
 		});
 
-		// Initialize MediaCamera but don't start it yet
+		// Initialize MediaCamera
 		cameraInstance.current = new MediaCamera(videoElement, {
 			onFrame: async () => {
 				try {
@@ -105,6 +105,9 @@ const CameraComponent = forwardRef(({ onFaceDetected }, ref) => {
 			})
 			.catch((error) => {
 				console.error("Camera failed to start:", error);
+				toast.error(
+					"Failed to access the camera. Please check permissions."
+				);
 			});
 
 		// Cleanup on unmount
@@ -118,9 +121,6 @@ const CameraComponent = forwardRef(({ onFaceDetected }, ref) => {
 
 	return (
 		<div className="w-full max-w-md bg-white shadow-md rounded-lg p-4 mb-6">
-			<h2 className="text-xl font-semibold mb-4 text-gray-700">
-				Camera Feed
-			</h2>
 			<div className="relative border-2 border-blue-500">
 				<video
 					ref={videoRef}

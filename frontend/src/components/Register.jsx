@@ -1,17 +1,16 @@
 // src/components/Register.jsx
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import CameraComponent from "./Camera";
-import { addUser } from "../api";
-import { toast } from "react-toastify"; // Import toast
-import LoadingSpinner from "./LoadingSpinner"; // Import loading spinner
+import { toast } from "react-toastify";
+import LoadingSpinner from "./LoadingSpinner";
 
-const Register = () => {
+const Register = ({ onAddUser, onCancel }) => {
 	const [step, setStep] = useState("form"); // 'form', 'capturing', 'preview'
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [capturedImage, setCapturedImage] = useState(null);
 	const [faceLandmarks, setFaceLandmarks] = useState(null);
-	const [capturedFaceLandmarks, setCapturedFaceLandmarks] = useState(null); // New state variable
+	const [capturedFaceLandmarks, setCapturedFaceLandmarks] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const cameraRef = useRef(null);
@@ -91,7 +90,6 @@ const Register = () => {
 	const handleConfirm = async () => {
 		console.log("Confirming registration.");
 		if (!capturedImage || !capturedFaceLandmarks) {
-			// Use capturedFaceLandmarks
 			toast.error("No image or face data to submit.");
 			console.log("Confirm failed: Missing image or face data.");
 			return;
@@ -105,17 +103,8 @@ const Register = () => {
 		};
 
 		try {
-			await addUser(user);
-			toast.success("User registered successfully!");
-			console.log("User registered successfully.");
-			// Reset form
-			setName("");
-			setEmail("");
-			setCapturedImage(null);
-			setFaceLandmarks(null);
-			setCapturedFaceLandmarks(null); // Reset captured landmarks
-			setStep("form");
-			console.log("Registration form reset.");
+			await onAddUser(user); // Use the passed prop
+			// Reset form handled in App.jsx after successful registration
 		} catch (error) {
 			console.error("Error registering user:", error);
 			toast.error("Failed to register user.");
@@ -185,6 +174,13 @@ const Register = () => {
 						>
 							Start Capture
 						</button>
+						<button
+							type="button"
+							onClick={onCancel}
+							className="w-full bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition duration-200"
+						>
+							Cancel
+						</button>
 					</form>
 				</>
 			)}
@@ -210,6 +206,7 @@ const Register = () => {
 					>
 						Capture
 					</button>
+
 					{!faceLandmarks && (
 						<p className="text-red-500 text-sm mt-2">
 							No face detected. Please align your face within the
