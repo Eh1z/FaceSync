@@ -1,8 +1,6 @@
 // src/utils/faceRecognition.js
 export const compareFaces = (face1, face2) => {
-	// Implement a comparison algorithm
-	// For simplicity, calculate average distance between corresponding landmarks
-	if (face1.length !== face2.length) return false;
+	if (!face1 || !face2 || face1.length !== face2.length) return false;
 
 	let totalDistance = 0;
 	for (let i = 0; i < face1.length; i++) {

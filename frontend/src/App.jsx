@@ -11,18 +11,27 @@ const App = () => {
 
 	useEffect(() => {
 		const fetchUsers = async () => {
-			const response = await getUsers();
-			setKnownFaces(response.data);
+			try {
+				const response = await getUsers();
+				setKnownFaces(response.data);
+			} catch (err) {
+				console.error("Error fetching users:", err);
+			}
 		};
 		const fetchAttendance = async () => {
-			const response = await getAttendance();
-			setAttendance(response.data);
+			try {
+				const response = await getAttendance();
+				setAttendance(response.data);
+			} catch (err) {
+				console.error("Error fetching attendance:", err);
+			}
 		};
 		fetchUsers();
 		fetchAttendance();
 	}, []);
 
 	const handleFaceDetected = async (landmarks) => {
+		console.log("Face detected with landmarks:", landmarks);
 		// Iterate through known faces and compare
 		for (let user of knownFaces) {
 			if (compareFaces(user.faceData, landmarks)) {
@@ -35,17 +44,22 @@ const App = () => {
 				);
 
 				if (!alreadyMarked) {
-					// Mark attendance
-					await markAttendance(user._id);
-					setAttendance((prev) => [
-						...prev,
-						{
-							userId: user._id,
-							name: user.name,
-							date: new Date().toISOString(),
-						},
-					]);
-					alert(`Attendance marked for ${user.name}`);
+					try {
+						// Mark attendance
+						const response = await markAttendance(user._id);
+						setAttendance((prev) => [
+							...prev,
+							{
+								userId: user._id,
+								name: user.name,
+								date: new Date().toISOString(),
+							},
+						]);
+						alert(`Attendance marked for ${user.name}`);
+					} catch (err) {
+						console.error("Error marking attendance:", err);
+						alert("Failed to mark attendance.");
+					}
 				} else {
 					alert(`Attendance already marked for ${user.name} today.`);
 				}
@@ -56,13 +70,13 @@ const App = () => {
 
 	return (
 		<div className="min-h-screen bg-gray-100 p-4">
-			<header className="mb-6">
+			<header className="flex justify-between items-center mb-6">
 				<h1 className="text-3xl font-bold text-center text-gray-800">
 					Facial Recognition Attendance
 				</h1>
+				{/* Optional: Theme Toggle Button */}
 			</header>
 			<main className="flex flex-col items-center">
-				<CameraComponent onFaceDetected={handleFaceDetected} />
 				<Register />
 				<section className="w-full max-w-2xl mt-8">
 					<h2 className="text-2xl font-semibold mb-4 text-gray-700">

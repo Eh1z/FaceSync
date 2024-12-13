@@ -1,30 +1,62 @@
 // src/components/Camera.jsx
-import React, { useRef, useEffect } from "react";
+import React, {
+	useRef,
+	useEffect,
+	forwardRef,
+	useImperativeHandle,
+} from "react";
 import { FaceMesh } from "@mediapipe/face_mesh";
-import { Camera } from "@mediapipe/camera_utils";
+import { Camera as MediaCamera } from "@mediapipe/camera_utils";
 
-const CameraComponent = ({ onFaceDetected }) => {
+const CameraComponent = forwardRef(({ onFaceDetected }, ref) => {
 	const videoRef = useRef(null);
 	const canvasRef = useRef(null);
+	const cameraInstance = useRef(null);
+	const faceMesh = useRef(null);
+
+	// Expose methods to control the camera
+	useImperativeHandle(ref, () => ({
+		startCamera: () => {
+			if (cameraInstance.current) {
+				cameraInstance.current.start();
+				console.log("Camera started via parent.");
+			}
+		},
+		stopCamera: () => {
+			if (cameraInstance.current) {
+				cameraInstance.current.stop();
+				console.log("Camera stopped via parent.");
+			}
+		},
+	}));
 
 	useEffect(() => {
+		console.log("Initializing CameraComponent");
+
+		if (!videoRef.current || !canvasRef.current) {
+			console.error("Video or Canvas reference is missing");
+			return;
+		}
+
 		const videoElement = videoRef.current;
 		const canvasElement = canvasRef.current;
 		const canvasCtx = canvasElement.getContext("2d");
 
-		const faceMesh = new FaceMesh({
+		// Initialize FaceMesh
+		faceMesh.current = new FaceMesh({
 			locateFile: (file) =>
 				`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
 		});
 
-		faceMesh.setOptions({
+		faceMesh.current.setOptions({
 			maxNumFaces: 1,
 			refineLandmarks: true,
 			minDetectionConfidence: 0.5,
 			minTrackingConfidence: 0.5,
 		});
 
-		faceMesh.onResults((results) => {
+		faceMesh.current.onResults((results) => {
+			console.log("FaceMesh results:", results);
 			canvasCtx.save();
 			canvasCtx.clearRect(
 				0,
@@ -39,25 +71,33 @@ const CameraComponent = ({ onFaceDetected }) => {
 				canvasElement.width,
 				canvasElement.height
 			);
+
 			if (results.multiFaceLandmarks) {
-				// Optionally, draw landmarks
-				// For now, we'll pass the landmarks to the parent component
 				onFaceDetected(results.multiFaceLandmarks[0]);
 			}
+
 			canvasCtx.restore();
 		});
 
-		const camera = new Camera(videoElement, {
+		// Initialize MediaCamera but don't start it yet
+		cameraInstance.current = new MediaCamera(videoElement, {
 			onFrame: async () => {
-				await faceMesh.send({ image: videoElement });
+				try {
+					await faceMesh.current.send({ image: videoElement });
+				} catch (err) {
+					console.error("Error sending frame to FaceMesh:", err);
+				}
 			},
 			width: 640,
 			height: 480,
 		});
-		camera.start();
 
+		// Cleanup on unmount
 		return () => {
-			camera.stop();
+			if (cameraInstance.current) {
+				cameraInstance.current.stop();
+				console.log("Camera stopped on unmount.");
+			}
 		};
 	}, [onFaceDetected]);
 
@@ -67,14 +107,22 @@ const CameraComponent = ({ onFaceDetected }) => {
 				Camera Feed
 			</h2>
 			<div className="relative">
-				<video ref={videoRef} className="hidden"></video>
+				<video
+					ref={videoRef}
+					className="w-full h-auto rounded-md"
+					autoPlay
+					muted
+					playsInline
+				></video>
 				<canvas
 					ref={canvasRef}
-					className="w-full h-auto rounded-md"
+					className="absolute top-0 left-0 w-full h-full rounded-md"
+					width="640"
+					height="480"
 				></canvas>
 			</div>
 		</div>
 	);
-};
+});
 
 export default CameraComponent;
