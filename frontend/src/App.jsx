@@ -2,9 +2,14 @@
 import React, { useState, useEffect } from "react";
 import Register from "./components/Register";
 import CheckIn from "./components/CheckIn";
-import { getUsers, getAttendance, addUser, markAttendance } from "./api";
+import ExportDropdown from "./components/ExportDropdown";
+import { getUsers, getAttendance, addUser } from "./api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import {
+	normalizeLandmarks,
+	calculateCosineSimilarity,
+} from "./utils/faceRecognition";
 
 const App = () => {
 	// State variables
@@ -43,7 +48,11 @@ const App = () => {
 	// Function to handle adding a new user
 	const handleAddUser = async (user) => {
 		try {
-			await addUser(user);
+			// Normalize user landmarks before sending to backend
+			const normalizedLandmarks = normalizeLandmarks(user.faceData);
+			const updatedUser = { ...user, faceData: normalizedLandmarks };
+
+			await addUser(updatedUser);
 			toast.success("User registered successfully!");
 			fetchUsers(); // Refresh knownFaces after adding a user
 			setCurrentView("home"); // Navigate back to home after registration

@@ -4,6 +4,10 @@ import CameraComponent from "./Camera";
 import { getUsers, markAttendance } from "../api";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
+import {
+	normalizeLandmarks,
+	calculateCosineSimilarity,
+} from "../utils/faceRecognition";
 
 const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const [users, setUsers] = useState([]);
@@ -30,25 +34,6 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		fetchUsers();
 	}, []);
 
-	// Function to calculate Euclidean distance between two landmark sets
-	const calculateSimilarity = (landmarks1, landmarks2) => {
-		if (landmarks1.length !== landmarks2.length) {
-			return Infinity; // No match
-		}
-
-		let totalDistance = 0;
-		for (let i = 0; i < landmarks1.length; i++) {
-			const dx = landmarks1[i].x - landmarks2[i].x;
-			const dy = landmarks1[i].y - landmarks2[i].y;
-			const dz = landmarks1[i].z - landmarks2[i].z;
-			const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-			totalDistance += distance;
-		}
-
-		const averageDistance = totalDistance / landmarks1.length;
-		return averageDistance;
-	};
-
 	// Callback to handle detected face landmarks
 	const handleFaceDetected = useCallback(
 		(landmarks) => {
@@ -57,21 +42,37 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 				return;
 			}
 
-			const threshold = 0.25; // Adjust this threshold based on testing
+			// Normalize detected landmarks
+			const normalizedDetectedLandmarks = normalizeLandmarks(landmarks);
+
+			const threshold = 0.2; // Adjust based on empirical testing
 			let bestMatch = null;
-			let lowestDistance = Infinity;
+			let highestSimilarity = -Infinity;
 
 			users.forEach((user) => {
-				const distance = calculateSimilarity(user.faceData, landmarks);
-				if (distance < lowestDistance && distance < threshold) {
-					lowestDistance = distance;
+				// Normalize stored user landmarks
+				const normalizedUserLandmarks = normalizeLandmarks(
+					user.faceData
+				);
+
+				const similarity = calculateCosineSimilarity(
+					normalizedUserLandmarks,
+					normalizedDetectedLandmarks
+				);
+
+				if (similarity > highestSimilarity && similarity >= threshold) {
+					highestSimilarity = similarity;
 					bestMatch = user;
 				}
 			});
 
 			if (bestMatch) {
 				setMatchedUser(bestMatch);
-				console.log(`Matched with user: ${bestMatch.name}`);
+				console.log(
+					`Matched with user: ${
+						bestMatch.name
+					} (Similarity: ${highestSimilarity.toFixed(2)})`
+				);
 			} else {
 				setMatchedUser(null);
 				console.log("No matching user found.");
@@ -137,7 +138,7 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 						</div>
 					) : (
 						<div className="p-3 bg-red-100 border border-red-400 rounded flex items-center justify-center text-red-800 text-sm">
-							No matching user detected. Place your face properly.
+							No matching user detected. Place your face properly.{" "}
 						</div>
 					)}
 					<button
