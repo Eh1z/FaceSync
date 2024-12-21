@@ -9,7 +9,7 @@ import "react-toastify/dist/ReactToastify.css";
 import {
 	normalizeLandmarks,
 	calculateCosineSimilarity,
-} from "./utils/faceRecognition";
+} from "./utils/faceRecognition"; // Ensure this path is correct
 
 const App = () => {
 	// State variables
@@ -136,33 +136,53 @@ const App = () => {
 
 				{/* Attendance List */}
 				<section className="w-full max-w-2xl mt-8">
-					<h2 className="text-2xl font-semibold mb-4 text-gray-700">
-						Attendance List
-					</h2>
+					<div className="flex justify-between items-center mb-4">
+						<h2 className="text-2xl font-semibold text-gray-700">
+							Attendance List
+						</h2>
+						{/* Export Dropdown */}
+						<ExportDropdown data={attendance} />
+					</div>
 					<div className="bg-white shadow rounded-lg p-4">
 						{attendance.length === 0 ? (
 							<p className="text-center text-gray-500">
 								No attendance records yet.
 							</p>
 						) : (
-							<ul>
-								{attendance.map((record) => (
-									<li
-										key={record._id}
-										className="flex justify-between items-center py-2 border-b last:border-0"
-									>
-										<span className="font-medium text-gray-800">
-											{record.userId?.name ||
-												"Unknown User"}
-										</span>
-										<span className="text-sm text-gray-500">
-											{record.createdAt
-												?.toString()
-												.slice(0, 16)}
-										</span>
-									</li>
-								))}
-							</ul>
+							<table className="min-w-full leading-normal">
+								<thead>
+									<tr>
+										<th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+											User Name
+										</th>
+										<th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+											Email
+										</th>
+										<th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+											Timestamp
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									{attendance.map((record) => (
+										<tr key={record._id}>
+											<td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+												{record.userId?.name ||
+													"Unknown"}
+											</td>
+											<td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+												{record.userId?.email ||
+													"Unknown"}
+											</td>
+											<td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+												{new Date(
+													record.createdAt
+												).toLocaleString()}
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
 						)}
 					</div>
 				</section>
