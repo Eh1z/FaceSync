@@ -10,7 +10,7 @@ export const normalizeLandmarks = (landmarks) => {
 	const centeredLandmarks = landmarks.map((lm) => ({
 		x: lm.x - centerX,
 		y: lm.y - centerY,
-		z: lm.z, // Retain z if needed
+		z: lm.z, // Retain z for 3D
 	}));
 
 	// Example indices for eyes; adjust based on actual landmark indices

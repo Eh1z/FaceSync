@@ -14,12 +14,13 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [matchedUser, setMatchedUser] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [currentExpression, setCurrentExpression] = useState(null); // Optional: To display expressions
 
 	const cameraRef = useRef(null);
 
 	// Fetch all users on component mount
 	useEffect(() => {
-		const fetchUsers = async () => {
+		const fetchUsersData = async () => {
 			try {
 				const response = await getUsers();
 				setUsers(response.data);
@@ -31,21 +32,22 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 				setIsLoading(false);
 			}
 		};
-		fetchUsers();
+		fetchUsersData();
 	}, []);
 
 	// Callback to handle detected face landmarks
 	const handleFaceDetected = useCallback(
-		(landmarks) => {
+		(landmarks, blendshapes, transformationMatrix) => {
 			if (!landmarks) {
 				setMatchedUser(null);
+				setCurrentExpression(null);
 				return;
 			}
 
 			// Normalize detected landmarks
 			const normalizedDetectedLandmarks = normalizeLandmarks(landmarks);
 
-			const threshold = 0.2; // Adjust based on empirical testing
+			const threshold = 0.85; // Adjust based on empirical testing
 			let bestMatch = null;
 			let highestSimilarity = -Infinity;
 
@@ -77,6 +79,15 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 				setMatchedUser(null);
 				console.log("No matching user found.");
 			}
+
+			// Optional: Handle blendshapes to detect expressions
+			if (blendshapes) {
+				const dominantExpression = Object.keys(blendshapes).reduce(
+					(a, b) => (blendshapes[a] > blendshapes[b] ? a : b)
+				);
+				setCurrentExpression(dominantExpression);
+				console.log(`Detected Expression: ${dominantExpression}`);
+			}
 		},
 		[users]
 	);
@@ -92,8 +103,7 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 			await markAttendance(matchedUser._id);
 			toast.success(`Attendance marked for ${matchedUser.name}!`);
 			console.log(`Attendance marked for user: ${matchedUser.name}`);
-			// Refresh attendance records by calling onMarkAttendance if needed
-			onMarkAttendance();
+			onMarkAttendance(); // Refresh attendance records after marking
 			setMatchedUser(null); // Reset matched user after marking attendance
 		} catch (error) {
 			console.error("Error marking attendance:", error);
@@ -121,6 +131,12 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 							<p className="text-green-800">
 								Welcome, <strong>{matchedUser.name}</strong>!
 							</p>
+							{currentExpression && (
+								<p className="text-green-700">
+									Detected Expression:{" "}
+									<strong>{currentExpression}</strong>
+								</p>
+							)}
 							<button
 								type="button"
 								onClick={handleConfirmAttendance}
@@ -135,19 +151,28 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 									? "Marking Attendance..."
 									: "Confirm Attendance"}
 							</button>
+							<button
+								type="button"
+								onClick={onCancel}
+								className="mt-2 w-full bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition duration-200"
+							>
+								Cancel
+							</button>
 						</div>
 					) : (
-						<div className="p-3 bg-red-100 border border-red-400 rounded flex items-center justify-center text-red-800 text-sm">
-							No matching user detected. Place your face properly.{" "}
+						<div className="mt-4 p-4 bg-red-100 border border-red-400 rounded-md">
+							<p className="text-red-800">
+								No matching user detected. Please try again.
+							</p>
+							<button
+								type="button"
+								onClick={onCancel}
+								className="mt-2 w-full bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition duration-200"
+							>
+								Cancel
+							</button>
 						</div>
 					)}
-					<button
-						type="button"
-						onClick={onCancel}
-						className=" mt-3 w-full bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition duration-200"
-					>
-						Cancel
-					</button>
 				</>
 			)}
 		</div>

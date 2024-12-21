@@ -9,13 +9,12 @@ const Register = ({ onAddUser, onCancel }) => {
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [capturedImage, setCapturedImage] = useState(null);
-	const [faceLandmarks, setFaceLandmarks] = useState(null);
 	const [capturedFaceLandmarks, setCapturedFaceLandmarks] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const cameraRef = useRef(null);
 
-	// Memoize the handleFaceDetected function
+	// Callback to handle detected face landmarks
 	const handleFaceDetected = useCallback(
 		(landmarks) => {
 			console.log(`Face detected in step: ${step}`);
@@ -24,10 +23,10 @@ const Register = ({ onAddUser, onCancel }) => {
 				return; // Only handle during 'capturing' step
 			}
 			if (landmarks) {
-				setFaceLandmarks(landmarks);
+				setCapturedFaceLandmarks(landmarks);
 				console.log("Face landmarks updated.");
 			} else {
-				setFaceLandmarks(null);
+				setCapturedFaceLandmarks(null);
 				console.log("No face detected.");
 			}
 		},
@@ -54,8 +53,7 @@ const Register = ({ onAddUser, onCancel }) => {
 		if (cameraRef.current) {
 			const imageData = cameraRef.current.capture();
 			if (imageData) {
-				if (faceLandmarks) {
-					setCapturedFaceLandmarks(faceLandmarks); // Store captured landmarks
+				if (capturedFaceLandmarks) {
 					setCapturedImage(imageData);
 					setStep("preview");
 					console.log("Image captured and moving to preview step.");
@@ -77,7 +75,6 @@ const Register = ({ onAddUser, onCancel }) => {
 	const handleRetake = () => {
 		console.log("Retaking image.");
 		setCapturedImage(null);
-		setFaceLandmarks(null);
 		setCapturedFaceLandmarks(null); // Reset captured landmarks
 		setStep("capturing");
 		// Restart the camera for retaking
@@ -100,11 +97,19 @@ const Register = ({ onAddUser, onCancel }) => {
 			name: name.trim(),
 			email: email.trim(),
 			faceData: capturedFaceLandmarks, // Use capturedFaceLandmarks
+			image: capturedImage, // Include captured image
 		};
 
 		try {
 			await onAddUser(user); // Use the passed prop
-			// Reset form handled in App.jsx after successful registration
+			toast.success("User registered successfully!");
+			// Optionally, reset the form or navigate away
+			setStep("form");
+			setName("");
+			setEmail("");
+			setCapturedImage(null);
+			setCapturedFaceLandmarks(null);
+			console.log("User registration successful.");
 		} catch (error) {
 			console.error("Error registering user:", error);
 			toast.error("Failed to register user.");
@@ -198,16 +203,16 @@ const Register = ({ onAddUser, onCancel }) => {
 						type="button"
 						onClick={handleCapture}
 						className={`w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition duration-200 mt-4 ${
-							!faceLandmarks
+							!capturedFaceLandmarks
 								? "opacity-50 cursor-not-allowed"
 								: ""
 						}`}
-						disabled={!faceLandmarks}
+						disabled={!capturedFaceLandmarks}
 					>
 						Capture
 					</button>
 
-					{!faceLandmarks && (
+					{!capturedFaceLandmarks && (
 						<p className="text-red-500 text-sm mt-2">
 							No face detected. Please align your face within the
 							frame.
