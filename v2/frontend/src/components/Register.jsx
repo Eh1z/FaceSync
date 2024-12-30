@@ -130,12 +130,9 @@ const Register = ({ onAddUser, onCancel }) => {
 	}, [step]);
 
 	return (
-		<div className="w-full max-w-md bg-white shadow-md rounded-lg p-6 mx-auto">
+		<div className="w-full bg-white shadow-md rounded-lg p-6">
 			{step === "form" && (
 				<>
-					<h2 className="text-xl font-semibold mb-4 text-gray-700">
-						Register User
-					</h2>
 					<form
 						className="space-y-4"
 						onSubmit={(e) => e.preventDefault()}

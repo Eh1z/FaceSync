@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { LuBox } from "react-icons/lu";
 
 const Sidebar = () => {
@@ -10,6 +10,7 @@ const Sidebar = () => {
 		{ path: "/dashboard/settings", name: "settings", icon: <LuBox /> },
 		{ path: "/", name: "logout", icon: <LuBox /> },
 	];
+
 	return (
 		<div className="flex flex-col gap-5 items-start justify-start w-[250px] h-screen p-5">
 			<div className="w-full flex items-center justify-center p-3 bg-[--secondary] rounded-xl">
@@ -19,7 +20,8 @@ const Sidebar = () => {
 				{links.map((item) => (
 					<a
 						href={item.path}
-						className="flex items-center justify-start gap-3 p-3 hover:bg-[--secondary] hover:text-[--accent] w-full rounded-xl cursor-pointer capitalize text-base"
+						key={item.name}
+						className={`flex items-center justify-start gap-3 p-3 hover:bg-[--secondary] hover:text-[--accent] w-full rounded-xl cursor-pointer capitalize text-base`}
 					>
 						<span>{item.icon}</span>
 						<span>{item.name}</span>

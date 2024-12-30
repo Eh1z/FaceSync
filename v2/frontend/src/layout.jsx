@@ -4,6 +4,9 @@ import Navbar from "./navbar";
 import { Routes, Route } from "react-router-dom";
 import Students from "./components/Students";
 import Home from "./components/home";
+import Attendance from "./components/attendance";
+import Settings from "./components/settings";
+import Support from "./components/support";
 
 const Layout = () => {
 	return (
@@ -16,6 +19,9 @@ const Layout = () => {
 					<Routes>
 						<Route index element={<Home />} />
 						<Route path="students" element={<Students />} />
+						<Route path="attendance" element={<Attendance />} />
+						<Route path="settings" element={<Settings />} />
+						<Route path="support" element={<Support />} />
 					</Routes>
 				</div>
 			</div>

@@ -114,10 +114,7 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	};
 
 	return (
-		<div className="w-full max-w-md bg-white shadow-md rounded-lg p-6 mx-auto">
-			<h2 className="text-xl font-semibold mb-4 text-gray-700">
-				Attendance Check-In
-			</h2>
+		<div className="w-full bg-white shadow-md rounded-lg p-6 ">
 			{isLoading ? (
 				<LoadingSpinner />
 			) : (
