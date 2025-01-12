@@ -3,10 +3,12 @@ import Sidebar from "./sidebar";
 import Navbar from "./navbar";
 import { Routes, Route } from "react-router-dom";
 import Students from "./components/Students";
-import Home from "./components/home";
 import Attendance from "./components/attendance";
 import Settings from "./components/settings";
 import Support from "./components/support";
+import Dashboard from "./components/dashboard";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Layout = () => {
 	return (
@@ -14,10 +16,10 @@ const Layout = () => {
 			<div className="flex">
 				<Sidebar />
 				{/* Content Section */}
-				<div className="w-full px-5 py-2 bg-[--bgSoft] flex flex-col gap-3">
+				<div className="w-full px-5 py-2 bg-[--bgSoft] flex flex-col gap-3 max-h-screen overflow-y-scroll">
 					<Navbar />
 					<Routes>
-						<Route index element={<Home />} />
+						<Route index element={<Dashboard />} />
 						<Route path="students" element={<Students />} />
 						<Route path="attendance" element={<Attendance />} />
 						<Route path="settings" element={<Settings />} />
@@ -25,6 +27,17 @@ const Layout = () => {
 					</Routes>
 				</div>
 			</div>
+			<ToastContainer
+				position="top-right"
+				autoClose={5000}
+				hideProgressBar
+				newestOnTop={false}
+				closeOnClick
+				rtl={false}
+				pauseOnFocusLoss
+				draggable
+				pauseOnHover
+			/>
 		</div>
 	);
 };

@@ -1,14 +1,30 @@
 import React, { useState } from "react";
-import { LuBox } from "react-icons/lu";
+import { PiStudentFill } from "react-icons/pi";
+import { BiSupport, BiLogOut } from "react-icons/bi";
+import { MdOutlineSettings } from "react-icons/md";
+import { IoIosPeople } from "react-icons/io";
+import { TbLayoutDashboard } from "react-icons/tb";
 
 const Sidebar = () => {
 	const links = [
-		{ path: "/dashboard", name: "dashboard", icon: <LuBox /> },
-		{ path: "/dashboard/attendance", name: "attendance", icon: <LuBox /> },
-		{ path: "/dashboard/students", name: "students", icon: <LuBox /> },
-		{ path: "/dashboard/support", name: "support", icon: <LuBox /> },
-		{ path: "/dashboard/settings", name: "settings", icon: <LuBox /> },
-		{ path: "/", name: "logout", icon: <LuBox /> },
+		{ path: "/dashboard", name: "dashboard", icon: <TbLayoutDashboard /> },
+		{
+			path: "/dashboard/attendance",
+			name: "attendance",
+			icon: <IoIosPeople />,
+		},
+		{
+			path: "/dashboard/students",
+			name: "students",
+			icon: <PiStudentFill />,
+		},
+		{ path: "/dashboard/support", name: "support", icon: <BiSupport /> },
+		{
+			path: "/dashboard/settings",
+			name: "settings",
+			icon: <MdOutlineSettings />,
+		},
+		{ path: "/", name: "logout", icon: <BiLogOut /> },
 	];
 
 	return (

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import CheckIn from "../components/CheckIn";
 import ExportDropdown from "../components/ExportDropDown";
 import { getAttendance, getUsers } from "../api";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { normalizeLandmarks } from "../utils/faceRecognition";
 
@@ -125,12 +125,6 @@ const Attendance = () => {
 					)}
 				</div>
 			</section>
-			;{/* Toast Notifications */}
-			<ToastContainer
-				position="top-right"
-				autoClose={5000}
-				hideProgressBar
-			/>
 		</div>
 	);
 };
