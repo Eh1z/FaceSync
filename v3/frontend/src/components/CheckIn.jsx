@@ -1,14 +1,8 @@
-// src/components/CheckIn.jsx
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import CameraComponent from "./Camera";
 import { getUsers, markAttendance } from "../api";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
-import {
-	normalizeLandmarks,
-	calculateCosineSimilarity,
-} from "../utils/faceRecognition";
-
 import * as faceapi from "face-api.js";
 
 const CheckIn = ({ onMarkAttendance, onCancel }) => {
@@ -16,86 +10,132 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [matchedUser, setMatchedUser] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [currentExpression, setCurrentExpression] = useState(null); // Optional: To display expressions
-
+	const [currentExpression, setCurrentExpression] = useState("");
 	const cameraRef = useRef(null);
+	const intervalRef = useRef();
 
-	// Fetch all users on component mount
 	useEffect(() => {
-		const fetchUsersData = async () => {
+		const fetchUsersAndLoadModels = async () => {
 			try {
-				const response = await getUsers();
-				setUsers(response.data);
-				console.log("Fetched users:", response.data);
+				// 1. Fetch users from your API
+				const usersResponse = await getUsers();
+				setUsers(usersResponse.data);
+
+				// 2. Load face detection and expression models
+				await Promise.all([
+					faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
+					faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
+					faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
+					faceapi.nets.faceExpressionNet.loadFromUri("/models"), // IMPORTANT: load expression model
+				]);
+				console.log("Models loaded");
 			} catch (error) {
-				console.error("Error fetching users:", error);
-				toast.error("Failed to fetch users.");
+				toast.error("Initialization failed");
+				console.error(error);
 			} finally {
 				setIsLoading(false);
 			}
 		};
-		fetchUsersData();
+
+		fetchUsersAndLoadModels();
 	}, []);
 
-	// Run Face API
+	// Face detection and expression detection
 	useEffect(() => {
-		const run = async () => {
-			try {
-				console.log("Loading models...");
-				await Promise.all([
-					faceapi.nets.ssdMobilenetv1.loadFromUri("/models"),
-					faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
-					faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
-					faceapi.nets.ageGenderNet.loadFromUri("/models"),
-				]);
-				console.log("Models loaded!");
+		if (!cameraRef.current || isLoading) return;
 
-				if (!cameraRef.current) {
-					console.error("Camera is not available.");
-					return;
+		const video = cameraRef.current;
+		const canvas = document.getElementById("canvas");
+
+		const handleLoadedMetadata = async () => {
+			const detectionOptions = new faceapi.TinyFaceDetectorOptions({
+				inputSize: 128,
+				scoreThreshold: 0.4,
+			});
+
+			intervalRef.current = setInterval(async () => {
+				try {
+					// If the video hasn't loaded enough to have valid width/height, skip
+					if (!video.videoWidth || !video.videoHeight) {
+						console.log("Waiting for video feed...");
+						return;
+					}
+
+					// Match canvas to the video’s size
+					const displaySize = {
+						width: video.videoWidth,
+						height: video.videoHeight,
+					};
+					faceapi.matchDimensions(canvas, displaySize);
+
+					// 3. Detect faces with landmarks, descriptors, and expressions
+					const faces = await faceapi
+						.detectAllFaces(video, detectionOptions)
+						.withFaceLandmarks()
+						.withFaceExpressions()
+						.withFaceDescriptors();
+
+					// Draw detection boxes on the canvas
+					if (faces.length > 0) {
+						const resized = faceapi.resizeResults(
+							faces,
+							displaySize
+						);
+						faceapi.draw.drawDetections(canvas, resized);
+
+						// 4. Face matching logic (e.g., match descriptor to user)
+						const match = matchFaceWithUsers(
+							faces[0].descriptor,
+							users
+						);
+						setMatchedUser(match);
+
+						// 5. Get dominant expression from the first detected face
+						const dominantExpression = getDominantExpression(
+							faces[0].expressions
+						);
+						setCurrentExpression(dominantExpression);
+					} else {
+						// Reset states if no face is detected
+						setMatchedUser(null);
+						setCurrentExpression("");
+					}
+				} catch (error) {
+					console.error("Detection error:", error);
 				}
-
-				const video = cameraRef.current;
-
-				// Ensure video is playing before detecting faces
-				video.onloadedmetadata = async () => {
-					console.log("Video is ready, starting face detection...");
-
-					setInterval(async () => {
-						const faceData = await faceapi
-							.detectAllFaces(
-								video,
-								new faceapi.SsdMobilenetv1Options()
-							) // Use video
-							.withFaceLandmarks()
-							.withFaceDescriptors();
-
-						console.log("Detected faces:", faceData);
-
-						if (faceData.length > 0) {
-							const canvas = document.getElementById("canvas");
-							const displaySize = {
-								width: video.width,
-								height: video.height,
-							};
-
-							faceapi.matchDimensions(canvas, displaySize);
-							const resizedResults = faceapi.resizeResults(
-								faceData,
-								displaySize
-							);
-							faceapi.draw.drawDetections(canvas, resizedResults);
-						}
-					}, 500); // Runs every 500ms (adjust for performance)
-				};
-			} catch (error) {
-				console.error("Error:", error);
-			}
+			}, 300); // adjust interval as needed
 		};
 
-		run();
-	}, []);
+		video.addEventListener("loadedmetadata", handleLoadedMetadata);
 
+		return () => {
+			clearInterval(intervalRef.current);
+			video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+		};
+	}, [isLoading, users]);
+
+	// Helper function to match face descriptors with user descriptors
+	// (You would replace the logic below with your actual matching algorithm)
+	const matchFaceWithUsers = (descriptor, users) => {
+		// E.g., find the user whose stored descriptor is "closest" to the current descriptor
+		// For demo purposes, returning the first user
+		return users[0] || null;
+	};
+
+	// Helper function to get the dominant expression
+	const getDominantExpression = (expressions) => {
+		let dominant = "";
+		let maxVal = 0;
+		for (const [expression, probability] of Object.entries(expressions)) {
+			if (probability > maxVal) {
+				dominant = expression;
+				maxVal = probability;
+			}
+		}
+		return dominant;
+	};
+
+	// Confirm attendance
 	const handleConfirmAttendance = async () => {
 		if (!matchedUser) {
 			toast.error("No user matched for attendance.");
@@ -107,8 +147,9 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 			await markAttendance(matchedUser._id);
 			toast.success(`Attendance marked for ${matchedUser.name}!`);
 			console.log(`Attendance marked for user: ${matchedUser.name}`);
-			onMarkAttendance(); // Refresh attendance records after marking
-			setMatchedUser(null); // Reset matched user after marking attendance
+			onMarkAttendance(); // optional: refresh attendance records
+			setMatchedUser(null);
+			setCurrentExpression("");
 		} catch (error) {
 			console.error("Error marking attendance:", error);
 			toast.error("Failed to mark attendance.");
@@ -118,7 +159,7 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	};
 
 	return (
-		<div className="w-full bg-white shadow-md rounded-lg p-6 ">
+		<div className="w-full bg-white shadow-md rounded-lg p-6">
 			{isLoading ? (
 				<LoadingSpinner />
 			) : (
@@ -127,9 +168,13 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 					<div className="relative">
 						<canvas
 							id="canvas"
-							className="absolute top-0 left-0 w-full h-full"
+							className="absolute top-0 left-0"
+							style={{
+								width: cameraRef.current?.videoWidth || "100%",
+								height:
+									cameraRef.current?.videoHeight || "100%",
+							}}
 						/>
-
 						<CameraComponent ref={cameraRef} />
 					</div>
 
