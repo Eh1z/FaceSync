@@ -39,23 +39,6 @@ const Attendance = () => {
 		fetchAttendance();
 	}, []);
 
-	// Function to handle adding a new user
-	const handleAddUser = async (user) => {
-		try {
-			// Normalize user landmarks before sending to backend
-			const normalizedLandmarks = normalizeLandmarks(user.faceData);
-			const updatedUser = { ...user, faceData: normalizedLandmarks };
-
-			await addUser(updatedUser);
-			toast.success("User registered successfully!");
-			fetchUsers(); // Refresh knownFaces after adding a user
-			setCurrentView("home"); // Navigate back to home after registration
-		} catch (error) {
-			console.error("Error adding user:", error);
-			toast.error("Failed to register user.");
-		}
-	};
-
 	// Function to handle marking attendance
 	const handleMarkAttendance = async () => {
 		try {
