@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import CameraComponent from "./Camera";
 import { getUsers, markAttendance } from "../api";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
@@ -11,22 +10,23 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const [matchedUser, setMatchedUser] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [currentExpression, setCurrentExpression] = useState("");
-	const cameraRef = useRef(null);
-	const intervalRef = useRef();
+	const imageRef = useRef(null);
+	const canvasRef = useRef(null);
 
+	// Fetch users and load face detection models
 	useEffect(() => {
 		const fetchUsersAndLoadModels = async () => {
 			try {
-				// 1. Fetch users from your API
+				// Fetch users
 				const usersResponse = await getUsers();
 				setUsers(usersResponse.data);
 
-				// 2. Load face detection and expression models
+				// Load models: face detector, landmark, recognition, and expression models
 				await Promise.all([
 					faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
 					faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
 					faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
-					faceapi.nets.faceExpressionNet.loadFromUri("/models"), // IMPORTANT: load expression model
+					faceapi.nets.faceExpressionNet.loadFromUri("/models"),
 				]);
 				console.log("Models loaded");
 			} catch (error) {
@@ -40,102 +40,97 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		fetchUsersAndLoadModels();
 	}, []);
 
-	// Face detection and expression detection
-	useEffect(() => {
-		if (!cameraRef.current || isLoading) return;
+	// Handle the image load event and run face detection on the static image
+	const handleImageLoad = async () => {
+		if (!imageRef.current || !canvasRef.current) return;
 
-		const video = cameraRef.current;
-		const canvas = document.getElementById("canvas");
+		const img = imageRef.current;
+		const canvas = canvasRef.current;
 
-		const handleLoadedMetadata = async () => {
-			const detectionOptions = new faceapi.TinyFaceDetectorOptions({
-				inputSize: 128,
-				scoreThreshold: 0.4,
-			});
+		// Set the canvas size to match the image dimensions
+		canvas.width = img.width;
+		canvas.height = img.height;
+		const displaySize = { width: img.width, height: img.height };
+		faceapi.matchDimensions(canvas, displaySize);
 
-			intervalRef.current = setInterval(async () => {
-				try {
-					// If the video hasn't loaded enough to have valid width/height, skip
-					if (!video.videoWidth || !video.videoHeight) {
-						console.log("Waiting for video feed...");
-						return;
-					}
+		// Configure detection options
+		const detectionOptions = new faceapi.TinyFaceDetectorOptions({
+			inputSize: 128,
+			scoreThreshold: 0.4,
+		});
 
-					// Match canvas to the video’s size
-					const displaySize = {
-						width: video.videoWidth,
-						height: video.videoHeight,
-					};
-					faceapi.matchDimensions(canvas, displaySize);
+		try {
+			// Detect faces with landmarks, expressions, and descriptors
+			const results = await faceapi
+				.detectAllFaces(img, detectionOptions)
+				.withFaceLandmarks()
+				.withFaceExpressions()
+				.withFaceDescriptors();
 
-					// 3. Detect faces with landmarks, descriptors, and expressions
-					const faces = await faceapi
-						.detectAllFaces(video, detectionOptions)
-						.withFaceLandmarks()
-						.withFaceExpressions()
-						.withFaceDescriptors();
+			if (results.length > 0) {
+				// Resize detection results to match display size
+				const resizedResults = faceapi.resizeResults(
+					results,
+					displaySize
+				);
 
-					// Draw detection boxes on the canvas
-					if (faces.length > 0) {
-						const resized = faceapi.resizeResults(
-							faces,
-							displaySize
-						);
-						faceapi.draw.drawDetections(canvas, resized);
+				// Draw bounding boxes without labels
+				resizedResults.forEach((result) => {
+					new faceapi.draw.DrawBox(result.detection.box, {
+						label: "",
+					}).draw(canvas);
+				});
 
-						// 4. Face matching logic (e.g., match descriptor to user)
-						const match = matchFaceWithUsers(
-							faces[0].descriptor,
-							users
-						);
-						setMatchedUser(match);
+				// Use the first detected face for matching and expression analysis
+				const face = results[0];
+				const match = matchFaceWithUsers(face.descriptor, users);
+				setMatchedUser(match);
 
-						// 5. Get dominant expression from the first detected face
-						const dominantExpression = getDominantExpression(
-							faces[0].expressions
-						);
-						setCurrentExpression(dominantExpression);
-					} else {
-						// Reset states if no face is detected
-						setMatchedUser(null);
-						setCurrentExpression("");
-					}
-				} catch (error) {
-					console.error("Detection error:", error);
+				const dominantExpression = getDominantExpression(
+					face.expressions
+				);
+				setCurrentExpression(dominantExpression);
+
+				// Draw the matched user's name above the bounding box if a match is found
+				if (match) {
+					const ctx = canvas.getContext("2d");
+					const box = resizedResults[0].detection.box;
+					ctx.font = "16px Arial";
+					ctx.fillStyle = "white";
+					ctx.fillText(match.name, box.x, box.y - 10);
 				}
-			}, 300); // adjust interval as needed
-		};
+			} else {
+				setMatchedUser(null);
+				setCurrentExpression("");
+				toast.error("No face detected in the image.");
+			}
+		} catch (error) {
+			console.error("Detection error:", error);
+			toast.error("Detection error.");
+		}
+	};
 
-		video.addEventListener("loadedmetadata", handleLoadedMetadata);
-
-		return () => {
-			clearInterval(intervalRef.current);
-			video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-		};
-	}, [isLoading, users]);
-
-	// Helper function to match face descriptors with user descriptors
-	// (You would replace the logic below with your actual matching algorithm)
+	// Helper: Compare the detected face descriptor to your stored user descriptors
+	// (Replace this logic with your actual matching algorithm)
 	const matchFaceWithUsers = (descriptor, users) => {
-		// E.g., find the user whose stored descriptor is "closest" to the current descriptor
-		// For demo purposes, returning the first user
+		// For demonstration purposes, simply return the first user if available
 		return users[0] || null;
 	};
 
-	// Helper function to get the dominant expression
+	// Helper: Determine the dominant expression from the expressions object
 	const getDominantExpression = (expressions) => {
 		let dominant = "";
-		let maxVal = 0;
+		let maxProbability = 0;
 		for (const [expression, probability] of Object.entries(expressions)) {
-			if (probability > maxVal) {
+			if (probability > maxProbability) {
 				dominant = expression;
-				maxVal = probability;
+				maxProbability = probability;
 			}
 		}
 		return dominant;
 	};
 
-	// Confirm attendance
+	// Confirm attendance when the user is matched
 	const handleConfirmAttendance = async () => {
 		if (!matchedUser) {
 			toast.error("No user matched for attendance.");
@@ -146,8 +141,7 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		try {
 			await markAttendance(matchedUser._id);
 			toast.success(`Attendance marked for ${matchedUser.name}!`);
-			console.log(`Attendance marked for user: ${matchedUser.name}`);
-			onMarkAttendance(); // optional: refresh attendance records
+			onMarkAttendance(); // Optionally refresh attendance records
 			setMatchedUser(null);
 			setCurrentExpression("");
 		} catch (error) {
@@ -164,18 +158,24 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 				<LoadingSpinner />
 			) : (
 				<>
-					{/* Camera Area */}
-					<div className="relative">
+					{/* Image and Canvas Overlay */}
+					<div className="relative inline-block">
+						<img
+							ref={imageRef}
+							src="/images/youngman2.png"
+							alt="For face detection"
+							onLoad={handleImageLoad}
+							style={{ maxWidth: "100%" }}
+						/>
 						<canvas
-							id="canvas"
-							className="absolute top-0 left-0"
+							ref={canvasRef}
 							style={{
-								width: cameraRef.current?.videoWidth || "100%",
-								height:
-									cameraRef.current?.videoHeight || "100%",
+								position: "absolute",
+								top: 0,
+								left: 0,
+								pointerEvents: "none",
 							}}
 						/>
-						<CameraComponent ref={cameraRef} />
 					</div>
 
 					{matchedUser ? (
