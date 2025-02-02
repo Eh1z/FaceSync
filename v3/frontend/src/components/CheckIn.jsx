@@ -3,6 +3,7 @@ import { getUsers, markAttendance } from "../api";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
 import * as faceapi from "face-api.js";
+// import "@tensorflow/tfjs-node";
 
 const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const [users, setUsers] = useState([]);
@@ -23,10 +24,10 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 
 				// Load models: face detector, landmark, recognition, and expression models
 				await Promise.all([
-					faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
+					faceapi.nets.ssdMobilenetv1.loadFromUri("/models"),
 					faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
 					faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
-					faceapi.nets.faceExpressionNet.loadFromUri("/models"),
+					faceapi.nets.ageGenderNet.loadFromUri("/models"),
 				]);
 				console.log("Models loaded");
 			} catch (error) {
@@ -53,31 +54,26 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		const displaySize = { width: img.width, height: img.height };
 		faceapi.matchDimensions(canvas, displaySize);
 
-		// Configure detection options
-		const detectionOptions = new faceapi.TinyFaceDetectorOptions({
-			inputSize: 128,
-			scoreThreshold: 0.4,
-		});
-
 		try {
 			// Detect faces with landmarks, expressions, and descriptors
-			const results = await faceapi
-				.detectAllFaces(img, detectionOptions)
+			let faceData = await faceapi
+				.detectAllFaces(img)
 				.withFaceLandmarks()
-				.withFaceExpressions()
 				.withFaceDescriptors();
+			console.log(faceData);
 
-			if (results.length > 0) {
+			if (faceData.length > 0) {
 				// Resize detection results to match display size
 				const resizedResults = faceapi.resizeResults(
-					results,
+					faceData,
 					displaySize
 				);
 
-				// Draw bounding boxes without labels
+				// Draw bounding boxes with yellow color and no labels
 				resizedResults.forEach((result) => {
 					new faceapi.draw.DrawBox(result.detection.box, {
 						label: "",
+						boxColor: "yellow",
 					}).draw(canvas);
 				});
 
@@ -85,11 +81,6 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 				const face = results[0];
 				const match = matchFaceWithUsers(face.descriptor, users);
 				setMatchedUser(match);
-
-				const dominantExpression = getDominantExpression(
-					face.expressions
-				);
-				setCurrentExpression(dominantExpression);
 
 				// Draw the matched user's name above the bounding box if a match is found
 				if (match) {
@@ -101,7 +92,6 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 				}
 			} else {
 				setMatchedUser(null);
-				setCurrentExpression("");
 				toast.error("No face detected in the image.");
 			}
 		} catch (error) {
@@ -115,19 +105,6 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const matchFaceWithUsers = (descriptor, users) => {
 		// For demonstration purposes, simply return the first user if available
 		return users[0] || null;
-	};
-
-	// Helper: Determine the dominant expression from the expressions object
-	const getDominantExpression = (expressions) => {
-		let dominant = "";
-		let maxProbability = 0;
-		for (const [expression, probability] of Object.entries(expressions)) {
-			if (probability > maxProbability) {
-				dominant = expression;
-				maxProbability = probability;
-			}
-		}
-		return dominant;
 	};
 
 	// Confirm attendance when the user is matched
@@ -174,6 +151,8 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 								top: 0,
 								left: 0,
 								pointerEvents: "none",
+								width: "100%",
+								height: "100%",
 							}}
 						/>
 					</div>
@@ -183,12 +162,7 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 							<p className="text-green-800">
 								Welcome, <strong>{matchedUser.name}</strong>!
 							</p>
-							{currentExpression && (
-								<p className="text-green-700">
-									Detected Expression:{" "}
-									<strong>{currentExpression}</strong>
-								</p>
-							)}
+
 							<button
 								type="button"
 								onClick={handleConfirmAttendance}
