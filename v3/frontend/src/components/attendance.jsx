@@ -4,7 +4,6 @@ import ExportDropdown from "../components/ExportDropDown";
 import { getAttendance, getUsers } from "../api";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { normalizeLandmarks } from "../utils/faceRecognition";
 
 const Attendance = () => {
 	// State variables

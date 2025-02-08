@@ -51,7 +51,8 @@ const userSchema = new mongoose.Schema(
 	{
 		name: String,
 		email: String,
-		faceData: Array, // Store facial landmarks or embeddings
+		userImage: String, // Store image as a base64 string
+		faceData: Object, // Store the detected face landmarks and descriptors
 	},
 	{ timestamps: true }
 );
@@ -79,10 +80,19 @@ app.get("/users", async (req, res) => {
 
 // Add a new user
 app.post("/users", async (req, res) => {
-	const { name, email, faceData } = req.body;
-	const newUser = new User({ name, email, faceData });
-	await newUser.save();
-	res.json(newUser);
+	try {
+		const { name, email, userImage, faceData } = req.body;
+		const user = new User({
+			name,
+			email,
+			userImage, // Store the image as base64
+			faceData, // Store the face data
+		});
+		await user.save();
+		res.status(201).json({ message: "User registered successfully" });
+	} catch (error) {
+		res.status(500).json({ message: "Failed to register user" });
+	}
 });
 
 // Mark attendance

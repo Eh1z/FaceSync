@@ -3,7 +3,6 @@ import Register from "./Register";
 import { getUsers, addUser } from "../api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { normalizeLandmarks } from "../utils/faceRecognition";
 
 const Students = () => {
 	// State variables
@@ -28,18 +27,18 @@ const Students = () => {
 	// Function to handle adding a new user
 	const handleAddUser = async (user) => {
 		try {
-			// Normalize user landmarks before sending to backend
-			const normalizedLandmarks = normalizeLandmarks(user.faceData);
-			const updatedUser = { ...user, faceData: normalizedLandmarks };
+			// Directly pass the user object (no need to normalize faceData)
+			const updatedUser = { ...user };
 
-			await addUser(updatedUser);
+			await addUser(updatedUser); // Send the user data (with image and face data)
 			toast.success("User registered successfully!");
-			fetchUsers(); // Refresh knownFaces after adding a user
+			fetchUsers(); // Refresh the knownFaces list after adding the user
 		} catch (error) {
 			console.error("Error adding user:", error);
 			toast.error("Failed to register user.");
 		}
 	};
+
 	return (
 		<div className="w-full h-[800px] p-5 rounded-xl grid grid-cols-2 gap-5">
 			<div className="w-full">
