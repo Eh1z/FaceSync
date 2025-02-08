@@ -3,31 +3,33 @@ import { getUsers, markAttendance } from "../api";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
 import * as faceapi from "face-api.js";
-// import "@tensorflow/tfjs-node";
+import CameraComponent from "./Camera";
 
 const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const [users, setUsers] = useState([]);
 	const [isLoading, setIsLoading] = useState(true);
-	const [matchedUser, setMatchedUser] = useState(null);
+	const [recognizedResults, setRecognizedResults] = useState([]); // Array of { detection, match, recognized }
+	const [capturedImage, setCapturedImage] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [currentExpression, setCurrentExpression] = useState("");
+	const [step, setStep] = useState("capturing"); // "capturing" or "preview"
+
+	const cameraRef = useRef(null);
 	const imageRef = useRef(null);
 	const canvasRef = useRef(null);
 
-	// Fetch users and load face detection models
+	// Fetch users and load face detection models on mount
 	useEffect(() => {
 		const fetchUsersAndLoadModels = async () => {
 			try {
-				// Fetch users
+				// Fetch registered users from the backend.
 				const usersResponse = await getUsers();
 				setUsers(usersResponse.data);
 
-				// Load models: face detector, landmark, recognition, and expression models
+				// Load required models
 				await Promise.all([
 					faceapi.nets.ssdMobilenetv1.loadFromUri("/models"),
 					faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
 					faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
-					faceapi.nets.ageGenderNet.loadFromUri("/models"),
 				]);
 				console.log("Models loaded");
 			} catch (error) {
@@ -41,86 +43,159 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		fetchUsersAndLoadModels();
 	}, []);
 
-	// Handle the image load event and run face detection on the static image
-	const handleImageLoad = async () => {
-		if (!imageRef.current || !canvasRef.current) return;
+	// Capture image from the camera
+	const handleCapture = () => {
+		if (cameraRef.current) {
+			const imageData = cameraRef.current.capture();
+			if (imageData) {
+				setCapturedImage(imageData);
+				setStep("preview");
+			} else {
+				toast.error("Failed to capture image. Please try again.");
+			}
+		}
+	};
 
-		const img = imageRef.current;
+	// Process the captured image: detect faces and compare with stored user images.
+	const processCapturedImage = async () => {
+		if (!capturedImage || !canvasRef.current) return;
+
+		// Create an image element from the captured base64 image.
+		const img = new Image();
+		img.src = capturedImage;
+		await new Promise((resolve) => {
+			img.onload = resolve;
+		});
+
+		// Set up canvas dimensions.
 		const canvas = canvasRef.current;
-
-		// Set the canvas size to match the image dimensions
 		canvas.width = img.width;
 		canvas.height = img.height;
 		const displaySize = { width: img.width, height: img.height };
 		faceapi.matchDimensions(canvas, displaySize);
 
 		try {
-			// Detect faces with landmarks, expressions, and descriptors
-			let faceData = await faceapi
+			// Detect all faces in the captured image along with landmarks and descriptors.
+			const detections = await faceapi
 				.detectAllFaces(img)
 				.withFaceLandmarks()
 				.withFaceDescriptors();
-			console.log(faceData);
 
-			if (faceData.length > 0) {
-				// Resize detection results to match display size
-				const resizedResults = faceapi.resizeResults(
-					faceData,
-					displaySize
+			if (detections.length === 0) {
+				toast.error("No face detected in the captured image.");
+				setRecognizedResults([]);
+				return;
+			}
+
+			// Resize detections to match the display size.
+			const resizedDetections = faceapi.resizeResults(
+				detections,
+				displaySize
+			);
+
+			const results = [];
+			// For each detected face, compare with each registered user.
+			for (let detection of detections) {
+				let bestMatch = null;
+				let minDistance = Infinity;
+
+				// Loop through each user.
+				for (let user of users) {
+					// If the user doesn’t already have a descriptor cached, compute it.
+					if (!user.descriptor && user.userImage) {
+						const userImg = new Image();
+						userImg.src = user.userImage;
+						await new Promise((resolve) => {
+							userImg.onload = resolve;
+						});
+						const userDetection = await faceapi
+							.detectSingleFace(userImg)
+							.withFaceLandmarks()
+							.withFaceDescriptor();
+						if (userDetection) {
+							user.descriptor = userDetection.descriptor;
+						}
+					}
+					if (user.descriptor) {
+						const distance = faceapi.euclideanDistance(
+							detection.descriptor,
+							user.descriptor
+						);
+						if (distance < minDistance) {
+							minDistance = distance;
+							bestMatch = user;
+						}
+					}
+				}
+
+				// If distance is less than a threshold (e.g., 0.6), consider it a match.
+				if (minDistance < 0.6) {
+					results.push({
+						detection,
+						match: bestMatch,
+						recognized: true,
+					});
+				} else {
+					results.push({ detection, recognized: false });
+				}
+			}
+
+			// Draw bounding boxes on the canvas.
+			const ctx = canvas.getContext("2d");
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			resizedDetections.forEach((result, index) => {
+				const box = result.detection.box;
+				const res = results[index];
+				// Set color based on recognition result.
+				const boxColor = res.recognized ? "green" : "red";
+				new faceapi.draw.DrawBox(box, { label: "", boxColor }).draw(
+					canvas
 				);
-
-				// Draw bounding boxes with yellow color and no labels
-				resizedResults.forEach((result) => {
-					new faceapi.draw.DrawBox(result.detection.box, {
-						label: "",
-						boxColor: "yellow",
-					}).draw(canvas);
-				});
-
-				// Use the first detected face for matching and expression analysis
-				const face = results[0];
-				const match = matchFaceWithUsers(face.descriptor, users);
-				setMatchedUser(match);
-
-				// Draw the matched user's name above the bounding box if a match is found
-				if (match) {
-					const ctx = canvas.getContext("2d");
-					const box = resizedResults[0].detection.box;
+				// If recognized, write the name above the box.
+				if (res.recognized && res.match && res.match.name) {
 					ctx.font = "16px Arial";
 					ctx.fillStyle = "white";
-					ctx.fillText(match.name, box.x, box.y - 10);
+					ctx.fillText(res.match.name, box.x, box.y - 10);
 				}
-			} else {
-				setMatchedUser(null);
-				toast.error("No face detected in the image.");
-			}
+			});
+
+			setRecognizedResults(results);
 		} catch (error) {
 			console.error("Detection error:", error);
 			toast.error("Detection error.");
 		}
 	};
 
-	// Helper: Compare the detected face descriptor to your stored user descriptors
-	// (Replace this logic with your actual matching algorithm)
-	const matchFaceWithUsers = (descriptor, users) => {
-		// For demonstration purposes, simply return the first user if available
-		return users[0] || null;
-	};
+	// Process image once captured when we transition to "preview" step.
+	useEffect(() => {
+		if (step === "preview" && capturedImage) {
+			processCapturedImage();
+		}
+	}, [step, capturedImage]);
 
-	// Confirm attendance when the user is matched
+	// Confirm attendance for all recognized users.
 	const handleConfirmAttendance = async () => {
-		if (!matchedUser) {
-			toast.error("No user matched for attendance.");
+		const recognizedUsers = recognizedResults
+			.filter((r) => r.recognized && r.match)
+			.map((r) => r.match);
+
+		if (recognizedUsers.length === 0) {
+			toast.error("No recognized user found for attendance.");
 			return;
 		}
 
 		setIsSubmitting(true);
 		try {
-			await markAttendance(matchedUser._id);
-			toast.success(`Attendance marked for ${matchedUser.name}!`);
+			// Mark attendance for each recognized user.
+			for (let user of recognizedUsers) {
+				await markAttendance(user._id);
+			}
+			toast.success("Attendance marked for recognized user(s)!");
 			onMarkAttendance(); // Optionally refresh attendance records
-			setMatchedUser(null);
-			setCurrentExpression("");
+			// Reset state for a new check-in.
+			setRecognizedResults([]);
+			setCapturedImage(null);
+			setStep("capturing");
 		} catch (error) {
 			console.error("Error marking attendance:", error);
 			toast.error("Failed to mark attendance.");
@@ -129,53 +204,33 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		}
 	};
 
+	// Allow retaking the check-in image.
+	const handleRetake = () => {
+		setCapturedImage(null);
+		setRecognizedResults([]);
+		setStep("capturing");
+	};
+
 	return (
 		<div className="w-full bg-white shadow-md rounded-lg p-6">
 			{isLoading ? (
 				<LoadingSpinner />
 			) : (
 				<>
-					{/* Image and Canvas Overlay */}
-					<div className="relative inline-block">
-						<img
-							ref={imageRef}
-							src="/images/youngman2.png"
-							alt="For face detection"
-							onLoad={handleImageLoad}
-							style={{ maxWidth: "100%" }}
-						/>
-						<canvas
-							ref={canvasRef}
-							style={{
-								position: "absolute",
-								top: 0,
-								left: 0,
-								pointerEvents: "none",
-								width: "100%",
-								height: "100%",
-							}}
-						/>
-					</div>
-
-					{matchedUser ? (
-						<div className="mt-4 p-4 bg-green-100 border border-green-400 rounded-md">
-							<p className="text-green-800">
-								Welcome, <strong>{matchedUser.name}</strong>!
-							</p>
-
+					{step === "capturing" && (
+						<>
+							<h2 className="text-xl font-semibold mb-4 text-gray-700">
+								Capture Your Check-In Photo
+							</h2>
+							<CameraComponent ref={cameraRef} />
 							<button
 								type="button"
-								onClick={handleConfirmAttendance}
-								className={`mt-2 w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-200 ${
-									isSubmitting
-										? "opacity-50 cursor-not-allowed"
-										: ""
-								}`}
-								disabled={isSubmitting}
+								onClick={() => {
+									handleCapture();
+								}}
+								className="mt-4 w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition duration-200"
 							>
-								{isSubmitting
-									? "Marking Attendance..."
-									: "Confirm Attendance"}
+								Capture
 							</button>
 							<button
 								type="button"
@@ -184,20 +239,58 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 							>
 								Cancel
 							</button>
-						</div>
-					) : (
-						<div className="mt-4 p-4 bg-red-100 border border-red-400 rounded-md">
-							<p className="text-red-800">
-								No matching user detected. Please try again.
-							</p>
-							<button
-								type="button"
-								onClick={onCancel}
-								className="mt-2 w-full bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition duration-200"
-							>
-								Cancel
-							</button>
-						</div>
+						</>
+					)}
+
+					{step === "preview" && (
+						<>
+							<h2 className="text-xl font-semibold mb-4 text-gray-700">
+								Review Check-In Photo
+							</h2>
+							{capturedImage && (
+								<img
+									ref={imageRef}
+									src={capturedImage}
+									alt="Captured Check-In"
+									style={{ maxWidth: "100%" }}
+								/>
+							)}
+							{/* Overlay canvas for bounding boxes */}
+							<canvas
+								ref={canvasRef}
+								style={{
+									position: "absolute",
+									top: 0,
+									left: 0,
+									pointerEvents: "none",
+									width: "100%",
+									height: "100%",
+								}}
+							/>
+							<div className="flex justify-between mt-4">
+								<button
+									type="button"
+									onClick={handleRetake}
+									className="w-1/2 bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition duration-200 mr-2"
+								>
+									Retake
+								</button>
+								<button
+									type="button"
+									onClick={handleConfirmAttendance}
+									disabled={isSubmitting}
+									className={`w-1/2 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-200 ml-2 ${
+										isSubmitting
+											? "opacity-50 cursor-not-allowed"
+											: ""
+									}`}
+								>
+									{isSubmitting
+										? "Marking Attendance..."
+										: "Confirm Attendance"}
+								</button>
+							</div>
+						</>
 					)}
 				</>
 			)}

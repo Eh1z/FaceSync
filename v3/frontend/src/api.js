@@ -1,7 +1,7 @@
 // src/api.js
 import axios from "axios";
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://face-sync-backend.vercel.app";
 
 export const getUsers = () => axios.get(`${API_URL}/users`);
 export const addUser = (user) => axios.post(`${API_URL}/users`, user);
