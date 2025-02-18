@@ -14,8 +14,23 @@ const Sidebar = () => {
 			icon: <IoIosPeople />,
 		},
 		{
+			path: "/dashboard/registration",
+			name: "registration",
+			icon: <PiStudentFill />,
+		},
+		{
+			path: "/dashboard/courses",
+			name: "courses",
+			icon: <PiStudentFill />,
+		},
+		{
 			path: "/dashboard/students",
 			name: "students",
+			icon: <PiStudentFill />,
+		},
+		{
+			path: "/dashboard/lecturers",
+			name: "lecturers",
 			icon: <PiStudentFill />,
 		},
 		{ path: "/dashboard/support", name: "support", icon: <BiSupport /> },

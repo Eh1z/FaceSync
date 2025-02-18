@@ -58,20 +58,19 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 
 	// Process the captured image: detect faces and compare with stored user images.
 	const processCapturedImage = async () => {
-		if (!capturedImage || !canvasRef.current) return;
+		if (!capturedImage || !canvasRef.current || !imageRef.current) return;
 
-		// Create an image element from the captured base64 image.
-		const img = new Image();
-		img.src = capturedImage;
-		await new Promise((resolve) => {
-			img.onload = resolve;
-		});
+		// Use the already rendered image from imageRef
+		const img = imageRef.current;
+		// Get the displayed dimensions from the rendered image
+		const displayedWidth = img.offsetWidth;
+		const displayedHeight = img.offsetHeight;
 
-		// Set up canvas dimensions.
+		// Set up canvas dimensions to match the displayed image.
 		const canvas = canvasRef.current;
-		canvas.width = img.width;
-		canvas.height = img.height;
-		const displaySize = { width: img.width, height: img.height };
+		canvas.width = displayedWidth;
+		canvas.height = displayedHeight;
+		const displaySize = { width: displayedWidth, height: displayedHeight };
 		faceapi.matchDimensions(canvas, displaySize);
 
 		try {
@@ -225,9 +224,7 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 							<CameraComponent ref={cameraRef} />
 							<button
 								type="button"
-								onClick={() => {
-									handleCapture();
-								}}
+								onClick={handleCapture}
 								className="mt-4 w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition duration-200"
 							>
 								Capture
@@ -247,26 +244,25 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 							<h2 className="text-xl font-semibold mb-4 text-gray-700">
 								Review Check-In Photo
 							</h2>
-							{capturedImage && (
-								<img
-									ref={imageRef}
-									src={capturedImage}
-									alt="Captured Check-In"
-									style={{ maxWidth: "100%" }}
+							<div className="relative inline-block">
+								{capturedImage && (
+									<img
+										ref={imageRef}
+										src={capturedImage}
+										alt="Captured Check-In"
+										style={{ maxWidth: "100%" }}
+									/>
+								)}
+								<canvas
+									ref={canvasRef}
+									style={{
+										position: "absolute",
+										top: 0,
+										left: 0,
+										pointerEvents: "none",
+									}}
 								/>
-							)}
-							{/* Overlay canvas for bounding boxes */}
-							<canvas
-								ref={canvasRef}
-								style={{
-									position: "absolute",
-									top: 0,
-									left: 0,
-									pointerEvents: "none",
-									width: "100%",
-									height: "100%",
-								}}
-							/>
+							</div>
 							<div className="flex justify-between mt-4">
 								<button
 									type="button"

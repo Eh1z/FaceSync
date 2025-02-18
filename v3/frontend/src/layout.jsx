@@ -7,6 +7,10 @@ import Attendance from "./components/attendance";
 import Settings from "./components/settings";
 import Support from "./components/support";
 import Dashboard from "./components/dashboard";
+import Courses from "./components/courses";
+import Registration from "./components/registration";
+import Lecturers from "./components/lecturers";
+
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -21,6 +25,9 @@ const Layout = () => {
 					<Routes>
 						<Route index element={<Dashboard />} />
 						<Route path="students" element={<Students />} />
+						<Route path="courses" element={<Courses />} />
+						<Route path="registration" element={<Registration />} />
+						<Route path="lecturers" element={<Lecturers />} />
 						<Route path="attendance" element={<Attendance />} />
 						<Route path="settings" element={<Settings />} />
 						<Route path="support" element={<Support />} />
