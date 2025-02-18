@@ -25,7 +25,7 @@ const Lecturers = () => {
 			const response = await getLecturers();
 			setLecturers(response.data);
 		} catch (error) {
-			toast.error("Failed to fetch lecturers.");
+			toast.error("Failed to fetch lecturers.", { containerId: "A" });
 			console.error(error);
 		}
 	};
@@ -35,7 +35,7 @@ const Lecturers = () => {
 			const response = await getCourses();
 			setCourses(response.data);
 		} catch (error) {
-			toast.error("Failed to fetch courses.");
+			toast.error("Failed to fetch courses.", { containerId: "A" });
 			console.error(error);
 		}
 	};
@@ -43,7 +43,7 @@ const Lecturers = () => {
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		if (!name.trim() || !email.trim()) {
-			toast.error("Name and email are required.");
+			toast.error("Name and email are required.", { containerId: "A" });
 			return;
 		}
 
@@ -55,13 +55,13 @@ const Lecturers = () => {
 
 		try {
 			await addLecturer(newLecturer);
-			toast.success("Lecturer added successfully!");
+			toast.success("Lecturer added successfully!", { containerId: "A" });
 			setName("");
 			setEmail("");
 			setSelectedCourses([]);
 			fetchLecturers();
 		} catch (error) {
-			toast.error("Failed to add lecturer.");
+			toast.error("Failed to add lecturer.", { containerId: "A" });
 			console.error(error);
 		}
 	};
@@ -113,7 +113,7 @@ const Lecturers = () => {
 	const handleEditSubmit = async (e) => {
 		e.preventDefault();
 		if (!editingName.trim() || !editingEmail.trim()) {
-			toast.error("Name and email are required.");
+			toast.error("Name and email are required.", { containerId: "A" });
 			return;
 		}
 		const updatedLecturer = {
@@ -123,24 +123,31 @@ const Lecturers = () => {
 		};
 		try {
 			await updateLecturer(editingLecturer._id, updatedLecturer);
-			toast.success("Lecturer updated successfully!");
+			toast.success("Lecturer updated successfully!", {
+				containerId: "A",
+			});
 			setEditingLecturer(null);
 			setEditingName("");
 			setEditingEmail("");
 			setEditingSelectedCourses([]);
 			fetchLecturers();
 		} catch (error) {
-			toast.error("Failed to update lecturer.");
-			console.error(error);
+			console.error(
+				"Client Update Error:",
+				error.response ? error.response.data : error
+			);
+			toast.error("Failed to update lecturer.", { containerId: "A" });
 		}
 	};
 
 	return (
 		<div className="w-full mx-auto p-6">
+			{/* ToastContainer with containerId "A" */}
 			<ToastContainer
+				containerId="A"
 				position="top-right"
 				autoClose={5000}
-				hideProgressBar
+				hideProgressBar={true}
 			/>
 			<h2 className="text-2xl font-bold mb-4">Lecturers</h2>
 

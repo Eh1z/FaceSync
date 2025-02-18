@@ -87,7 +87,7 @@ const Course = mongoose.model("Course", courseSchema);
 
 // Routes
 app.use("/", () => {
-	res.send("Welcome to Face Sync Backend API");
+	res.json("Welcome to Face Sync Backend API");
 });
 // Users
 app.get("/users", async (req, res) => {
@@ -155,20 +155,27 @@ app.post("/lecturers", async (req, res) => {
 	}
 });
 
-app.post("/lecturers/:id", async (req, res) => {
+app.put("/lecturers/:id", async (req, res) => {
 	try {
 		const { name, email, courses } = req.body;
+		// Use exec() to ensure the query executes correctly when chaining populate
 		const updatedLecturer = await Lecturer.findByIdAndUpdate(
 			req.params.id,
 			{ name, email, courses },
 			{ new: true }
-		).populate("courses");
+		)
+			.populate("courses")
+			.exec();
 		if (!updatedLecturer) {
 			return res.status(404).json({ message: "Lecturer not found" });
 		}
 		res.json(updatedLecturer);
 	} catch (error) {
-		res.status(500).json({ message: "Failed to update lecturer" });
+		console.error("Update Lecturer Error:", error); // Log detailed error info
+		res.status(500).json({
+			message: "Failed to update lecturer",
+			error: error.message,
+		});
 	}
 });
 
