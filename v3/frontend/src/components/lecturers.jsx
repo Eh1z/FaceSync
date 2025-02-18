@@ -1,7 +1,357 @@
-import React from "react";
+// src/components/Lecturers.jsx
+import React, { useState, useEffect } from "react";
+import { getLecturers, addLecturer, getCourses, updateLecturer } from "../api";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Lecturers = () => {
-	return <div>Lecturers</div>;
+	const [lecturers, setLecturers] = useState([]);
+	const [courses, setCourses] = useState([]);
+	const [name, setName] = useState("");
+	const [email, setEmail] = useState("");
+	const [selectedCourses, setSelectedCourses] = useState([]);
+	const [editingLecturer, setEditingLecturer] = useState(null);
+	const [editingName, setEditingName] = useState("");
+	const [editingEmail, setEditingEmail] = useState("");
+	const [editingSelectedCourses, setEditingSelectedCourses] = useState([]);
+
+	useEffect(() => {
+		fetchLecturers();
+		fetchCourses();
+	}, []);
+
+	const fetchLecturers = async () => {
+		try {
+			const response = await getLecturers();
+			setLecturers(response.data);
+		} catch (error) {
+			toast.error("Failed to fetch lecturers.");
+			console.error(error);
+		}
+	};
+
+	const fetchCourses = async () => {
+		try {
+			const response = await getCourses();
+			setCourses(response.data);
+		} catch (error) {
+			toast.error("Failed to fetch courses.");
+			console.error(error);
+		}
+	};
+
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		if (!name.trim() || !email.trim()) {
+			toast.error("Name and email are required.");
+			return;
+		}
+
+		const newLecturer = {
+			name: name.trim(),
+			email: email.trim(),
+			courses: selectedCourses,
+		};
+
+		try {
+			await addLecturer(newLecturer);
+			toast.success("Lecturer added successfully!");
+			setName("");
+			setEmail("");
+			setSelectedCourses([]);
+			fetchLecturers();
+		} catch (error) {
+			toast.error("Failed to add lecturer.");
+			console.error(error);
+		}
+	};
+
+	const handleCourseChange = (e) => {
+		const selected = Array.from(
+			e.target.selectedOptions,
+			(option) => option.value
+		);
+		setSelectedCourses(selected);
+	};
+
+	// Edit Lecturer Functions
+	const handleEditClick = (lecturer) => {
+		setEditingLecturer(lecturer);
+		setEditingName(lecturer.name);
+		setEditingEmail(lecturer.email);
+		// Convert courses array of objects to an array of course IDs
+		const courseIds = lecturer.courses
+			? lecturer.courses.map((course) => course._id)
+			: [];
+		setEditingSelectedCourses(courseIds);
+	};
+
+	const handleEditingCourseChange = (e) => {
+		const selected = Array.from(
+			e.target.selectedOptions,
+			(option) => option.value
+		);
+		setEditingSelectedCourses(selected);
+	};
+
+	const handleEditCancel = () => {
+		setEditingLecturer(null);
+		setEditingName("");
+		setEditingEmail("");
+		setEditingSelectedCourses([]);
+	};
+
+	const handleEditSubmit = async (e) => {
+		e.preventDefault();
+		if (!editingName.trim() || !editingEmail.trim()) {
+			toast.error("Name and email are required.");
+			return;
+		}
+		const updatedLecturer = {
+			name: editingName.trim(),
+			email: editingEmail.trim(),
+			courses: editingSelectedCourses,
+		};
+		try {
+			await updateLecturer(editingLecturer._id, updatedLecturer);
+			toast.success("Lecturer updated successfully!");
+			setEditingLecturer(null);
+			setEditingName("");
+			setEditingEmail("");
+			setEditingSelectedCourses([]);
+			fetchLecturers();
+		} catch (error) {
+			toast.error("Failed to update lecturer.");
+			console.error(error);
+		}
+	};
+
+	return (
+		<div className="w-full mx-auto p-6">
+			<ToastContainer
+				position="top-right"
+				autoClose={5000}
+				hideProgressBar
+			/>
+			<h2 className="text-2xl font-bold mb-4">Lecturers</h2>
+
+			{/* Form to add a new lecturer */}
+			<div className="max-w-[800px] bg-white p-4 rounded shadow mb-8">
+				<h3 className="text-xl font-semibold mb-4">Add New Lecturer</h3>
+				<form onSubmit={handleSubmit} className="space-y-4">
+					<div>
+						<label
+							htmlFor="lecturerName"
+							className="block text-gray-700 mb-1"
+						>
+							Name
+						</label>
+						<input
+							id="lecturerName"
+							type="text"
+							placeholder="Enter lecturer name"
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+							className="w-full border p-2 rounded"
+							required
+						/>
+					</div>
+					<div>
+						<label
+							htmlFor="lecturerEmail"
+							className="block text-gray-700 mb-1"
+						>
+							Email
+						</label>
+						<input
+							id="lecturerEmail"
+							type="email"
+							placeholder="Enter lecturer email"
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+							className="w-full border p-2 rounded"
+							required
+						/>
+					</div>
+					<div>
+						<label
+							htmlFor="lecturerCourses"
+							className="block text-gray-700 mb-1"
+						>
+							Assign Courses
+						</label>
+						<select
+							id="lecturerCourses"
+							multiple
+							value={selectedCourses}
+							onChange={handleCourseChange}
+							className="w-full border p-2 rounded"
+						>
+							{courses.map((course) => (
+								<option key={course._id} value={course._id}>
+									{course.courseName} ({course.courseCode})
+								</option>
+							))}
+						</select>
+					</div>
+					<button
+						type="submit"
+						className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-200"
+					>
+						Add Lecturer
+					</button>
+				</form>
+			</div>
+
+			{/* Edit Lecturer Form */}
+			{editingLecturer && (
+				<div className="max-w-[800px] bg-white p-4 rounded shadow mb-8">
+					<h3 className="text-xl font-semibold mb-4">
+						Edit Lecturer
+					</h3>
+					<form onSubmit={handleEditSubmit} className="space-y-4">
+						<div>
+							<label
+								htmlFor="editingName"
+								className="block text-gray-700 mb-1"
+							>
+								Name
+							</label>
+							<input
+								id="editingName"
+								type="text"
+								placeholder="Enter lecturer name"
+								value={editingName}
+								onChange={(e) => setEditingName(e.target.value)}
+								className="w-full border p-2 rounded"
+								required
+							/>
+						</div>
+						<div>
+							<label
+								htmlFor="editingEmail"
+								className="block text-gray-700 mb-1"
+							>
+								Email
+							</label>
+							<input
+								id="editingEmail"
+								type="email"
+								placeholder="Enter lecturer email"
+								value={editingEmail}
+								onChange={(e) =>
+									setEditingEmail(e.target.value)
+								}
+								className="w-full border p-2 rounded"
+								required
+							/>
+						</div>
+						<div>
+							<label
+								htmlFor="editingCourses"
+								className="block text-gray-700 mb-1"
+							>
+								Assign Courses
+							</label>
+							<select
+								id="editingCourses"
+								multiple
+								value={editingSelectedCourses}
+								onChange={handleEditingCourseChange}
+								className="w-full border p-2 rounded"
+							>
+								{courses.map((course) => (
+									<option key={course._id} value={course._id}>
+										{course.courseName} ({course.courseCode}
+										)
+									</option>
+								))}
+							</select>
+						</div>
+						<div className="flex space-x-4">
+							<button
+								type="button"
+								onClick={handleEditCancel}
+								className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition duration-200"
+							>
+								Cancel
+							</button>
+							<button
+								type="submit"
+								className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition duration-200"
+							>
+								Save Changes
+							</button>
+						</div>
+					</form>
+				</div>
+			)}
+
+			{/* List of existing lecturers */}
+			<div className="bg-white p-4 rounded shadow">
+				<h3 className="text-xl font-semibold mb-4">
+					Existing Lecturers
+				</h3>
+				{lecturers.length === 0 ? (
+					<p>No lecturers found.</p>
+				) : (
+					<table className="min-w-full divide-y divide-gray-200">
+						<thead>
+							<tr>
+								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Name
+								</th>
+								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Email
+								</th>
+								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Courses
+								</th>
+								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Actions
+								</th>
+							</tr>
+						</thead>
+						<tbody className="bg-white divide-y divide-gray-200">
+							{lecturers.map((lecturer) => (
+								<tr key={lecturer._id}>
+									<td className="px-6 py-4 whitespace-nowrap">
+										{lecturer.name}
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
+										{lecturer.email}
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
+										{lecturer.courses &&
+										lecturer.courses.length > 0 ? (
+											lecturer.courses.map((course) => (
+												<div key={course._id}>
+													{course.courseName} (
+													{course.courseCode})
+												</div>
+											))
+										) : (
+											<span>No courses assigned</span>
+										)}
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
+										<button
+											onClick={() =>
+												handleEditClick(lecturer)
+											}
+											className="bg-yellow-500 text-white py-1 px-2 rounded hover:bg-yellow-600 transition duration-200"
+										>
+											Edit
+										</button>
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				)}
+			</div>
+		</div>
+	);
 };
 
 export default Lecturers;

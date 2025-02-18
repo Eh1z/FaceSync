@@ -1,19 +1,23 @@
+// src/components/Register.jsx
 import React, { useState, useRef, useEffect } from "react";
 import CameraComponent from "./Camera";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
 
-const Register = ({ onAddUser, onCancel }) => {
+const Register = ({ onAddUser, onCancel, courses }) => {
 	const [step, setStep] = useState("form");
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
+	const [selectedCourses, setSelectedCourses] = useState([]); // New state for courses
 	const [capturedImage, setCapturedImage] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const cameraRef = useRef(null);
 
 	const handleStartCapture = () => {
-		if (!name.trim() || !email.trim()) {
-			toast.error("Please enter both name and email.");
+		if (!name.trim() || !email.trim() || selectedCourses.length === 0) {
+			toast.error(
+				"Please enter name, email, and select at least one course."
+			);
 			return;
 		}
 		setStep("capturing");
@@ -38,7 +42,7 @@ const Register = ({ onAddUser, onCancel }) => {
 	const handleRetake = () => {
 		setCapturedImage(null);
 		setStep("capturing");
-		cameraRef.current.startCamera();
+		if (cameraRef.current) cameraRef.current.startCamera();
 	};
 
 	const handleConfirm = async () => {
@@ -51,21 +55,33 @@ const Register = ({ onAddUser, onCancel }) => {
 		const user = {
 			name: name.trim(),
 			email: email.trim(),
-			userImage: capturedImage, // Save the captured image as base64
+			userImage: capturedImage, // Captured face image
+			courses: selectedCourses, // Selected course IDs
 		};
 
 		try {
-			await onAddUser(user); // Send the user data (with image)
+			await onAddUser(user);
 			toast.success("User registered successfully!");
+			// Reset form
 			setStep("form");
 			setName("");
 			setEmail("");
+			setSelectedCourses([]);
 			setCapturedImage(null);
 		} catch (error) {
 			toast.error("Failed to register user.");
 		} finally {
 			setIsSubmitting(false);
 		}
+	};
+
+	// Handle multi-select change for courses
+	const handleCourseChange = (e) => {
+		const selected = Array.from(
+			e.target.selectedOptions,
+			(option) => option.value
+		);
+		setSelectedCourses(selected);
 	};
 
 	useEffect(() => {
@@ -113,6 +129,32 @@ const Register = ({ onAddUser, onCancel }) => {
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
 							/>
+						</div>
+						<div>
+							<label
+								className="block text-gray-600 mb-1"
+								htmlFor="courses"
+							>
+								Select Courses
+							</label>
+							<select
+								id="courses"
+								multiple
+								value={selectedCourses}
+								onChange={handleCourseChange}
+								className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+							>
+								{courses &&
+									courses.map((course) => (
+										<option
+											key={course._id}
+											value={course._id}
+										>
+											{course.courseName} (
+											{course.courseCode})
+										</option>
+									))}
+							</select>
 						</div>
 						<button
 							type="button"
