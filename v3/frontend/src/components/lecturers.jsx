@@ -74,12 +74,15 @@ const Lecturers = () => {
 		setSelectedCourses(selected);
 	};
 
+	const handleRemoveCourse = (courseId) => {
+		setSelectedCourses((prev) => prev.filter((id) => id !== courseId));
+	};
+
 	// Edit Lecturer Functions
 	const handleEditClick = (lecturer) => {
 		setEditingLecturer(lecturer);
 		setEditingName(lecturer.name);
 		setEditingEmail(lecturer.email);
-		// Convert courses array of objects to an array of course IDs
 		const courseIds = lecturer.courses
 			? lecturer.courses.map((course) => course._id)
 			: [];
@@ -92,6 +95,12 @@ const Lecturers = () => {
 			(option) => option.value
 		);
 		setEditingSelectedCourses(selected);
+	};
+
+	const handleRemoveEditingCourse = (courseId) => {
+		setEditingSelectedCourses((prev) =>
+			prev.filter((id) => id !== courseId)
+		);
 	};
 
 	const handleEditCancel = () => {
@@ -173,6 +182,42 @@ const Lecturers = () => {
 							required
 						/>
 					</div>
+
+					{/* Selected Courses List */}
+					{selectedCourses.length > 0 && (
+						<div className="mb-4">
+							<h4 className="font-semibold">Selected Courses:</h4>
+							<div className="flex flex-wrap gap-2">
+								{selectedCourses.map((courseId) => {
+									const courseObj = courses.find(
+										(course) => course._id === courseId
+									);
+									return (
+										<div
+											key={courseId}
+											className="flex items-center bg-gray-200 rounded px-2 py-1"
+										>
+											<span className="mr-2">
+												{courseObj
+													? courseObj.courseCode
+													: courseId}
+											</span>
+											<button
+												type="button"
+												onClick={() =>
+													handleRemoveCourse(courseId)
+												}
+												className="text-red-500"
+											>
+												x
+											</button>
+										</div>
+									);
+								})}
+							</div>
+						</div>
+					)}
+
 					<div>
 						<label
 							htmlFor="lecturerCourses"
@@ -202,90 +247,6 @@ const Lecturers = () => {
 					</button>
 				</form>
 			</div>
-
-			{/* Edit Lecturer Form */}
-			{editingLecturer && (
-				<div className="max-w-[800px] bg-white p-4 rounded shadow mb-8">
-					<h3 className="text-xl font-semibold mb-4">
-						Edit Lecturer
-					</h3>
-					<form onSubmit={handleEditSubmit} className="space-y-4">
-						<div>
-							<label
-								htmlFor="editingName"
-								className="block text-gray-700 mb-1"
-							>
-								Name
-							</label>
-							<input
-								id="editingName"
-								type="text"
-								placeholder="Enter lecturer name"
-								value={editingName}
-								onChange={(e) => setEditingName(e.target.value)}
-								className="w-full border p-2 rounded"
-								required
-							/>
-						</div>
-						<div>
-							<label
-								htmlFor="editingEmail"
-								className="block text-gray-700 mb-1"
-							>
-								Email
-							</label>
-							<input
-								id="editingEmail"
-								type="email"
-								placeholder="Enter lecturer email"
-								value={editingEmail}
-								onChange={(e) =>
-									setEditingEmail(e.target.value)
-								}
-								className="w-full border p-2 rounded"
-								required
-							/>
-						</div>
-						<div>
-							<label
-								htmlFor="editingCourses"
-								className="block text-gray-700 mb-1"
-							>
-								Assign Courses
-							</label>
-							<select
-								id="editingCourses"
-								multiple
-								value={editingSelectedCourses}
-								onChange={handleEditingCourseChange}
-								className="w-full border p-2 rounded"
-							>
-								{courses.map((course) => (
-									<option key={course._id} value={course._id}>
-										{course.courseName} ({course.courseCode}
-										)
-									</option>
-								))}
-							</select>
-						</div>
-						<div className="flex space-x-4">
-							<button
-								type="button"
-								onClick={handleEditCancel}
-								className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition duration-200"
-							>
-								Cancel
-							</button>
-							<button
-								type="submit"
-								className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition duration-200"
-							>
-								Save Changes
-							</button>
-						</div>
-					</form>
-				</div>
-			)}
 
 			{/* List of existing lecturers */}
 			<div className="bg-white p-4 rounded shadow">
@@ -350,6 +311,140 @@ const Lecturers = () => {
 					</table>
 				)}
 			</div>
+
+			{/* Edit Lecturer Modal */}
+			{editingLecturer && (
+				<div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+					<div className="bg-white p-6 rounded shadow max-w-[800px] w-full">
+						<h3 className="text-xl font-semibold mb-4">
+							Edit Lecturer
+						</h3>
+						<form onSubmit={handleEditSubmit} className="space-y-4">
+							<div>
+								<label
+									htmlFor="editingName"
+									className="block text-gray-700 mb-1"
+								>
+									Name
+								</label>
+								<input
+									id="editingName"
+									type="text"
+									placeholder="Enter lecturer name"
+									value={editingName}
+									onChange={(e) =>
+										setEditingName(e.target.value)
+									}
+									className="w-full border p-2 rounded"
+									required
+								/>
+							</div>
+							<div>
+								<label
+									htmlFor="editingEmail"
+									className="block text-gray-700 mb-1"
+								>
+									Email
+								</label>
+								<input
+									id="editingEmail"
+									type="email"
+									placeholder="Enter lecturer email"
+									value={editingEmail}
+									onChange={(e) =>
+										setEditingEmail(e.target.value)
+									}
+									className="w-full border p-2 rounded"
+									required
+								/>
+							</div>
+
+							{/* Selected Courses for Editing */}
+							{editingSelectedCourses.length > 0 && (
+								<div className="mb-4">
+									<h4 className="font-semibold">
+										Selected Courses:
+									</h4>
+									<div className="flex flex-wrap gap-2">
+										{editingSelectedCourses.map(
+											(courseId) => {
+												const courseObj = courses.find(
+													(course) =>
+														course._id === courseId
+												);
+												return (
+													<div
+														key={courseId}
+														className="flex items-center bg-gray-200 rounded px-2 py-1"
+													>
+														<span className="mr-2">
+															{courseObj
+																? courseObj.courseCode
+																: courseId}
+														</span>
+														<button
+															type="button"
+															onClick={() =>
+																handleRemoveEditingCourse(
+																	courseId
+																)
+															}
+															className="text-red-500"
+														>
+															x
+														</button>
+													</div>
+												);
+											}
+										)}
+									</div>
+								</div>
+							)}
+
+							<div>
+								<label
+									htmlFor="editingCourses"
+									className="block text-gray-700 mb-1"
+								>
+									Assign Courses
+								</label>
+								<select
+									id="editingCourses"
+									multiple
+									value={editingSelectedCourses}
+									onChange={handleEditingCourseChange}
+									className="w-full border p-2 rounded"
+								>
+									{courses.map((course) => (
+										<option
+											key={course._id}
+											value={course._id}
+										>
+											{course.courseName} (
+											{course.courseCode})
+										</option>
+									))}
+								</select>
+							</div>
+							<div className="flex space-x-4">
+								<button
+									type="button"
+									onClick={handleEditCancel}
+									className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition duration-200"
+								>
+									Cancel
+								</button>
+								<button
+									type="submit"
+									className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition duration-200"
+								>
+									Save Changes
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };
