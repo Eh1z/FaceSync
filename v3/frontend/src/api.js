@@ -19,4 +19,4 @@ export const addCourse = (course) => axios.post(`${API_URL}/courses`, course);
 export const markAttendance = (userId) =>
 	axios.post(`${API_URL}/attendance`, { userId });
 export const updateLecturer = (id, data) =>
-	axios.put(`${API_URL}/lecturers/${id}`, data);
+	axios.post(`${API_URL}/lecturers/${id}`, data);

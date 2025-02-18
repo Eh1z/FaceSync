@@ -86,7 +86,9 @@ const Lecturer = mongoose.model("Lecturer", lecturerSchema);
 const Course = mongoose.model("Course", courseSchema);
 
 // Routes
-
+app.use("/", () => {
+	res.send("Welcome to Face Sync Backend API");
+});
 // Users
 app.get("/users", async (req, res) => {
 	try {
@@ -153,7 +155,7 @@ app.post("/lecturers", async (req, res) => {
 	}
 });
 
-app.put("/lecturers/:id", async (req, res) => {
+app.post("/lecturers/:id", async (req, res) => {
 	try {
 		const { name, email, courses } = req.body;
 		const updatedLecturer = await Lecturer.findByIdAndUpdate(
