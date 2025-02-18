@@ -86,7 +86,7 @@ const Lecturer = mongoose.model("Lecturer", lecturerSchema);
 const Course = mongoose.model("Course", courseSchema);
 
 // Routes
-app.use("/", (req, res) => {
+app.get("/", (req, res) => {
 	res.json("Welcome to Face Sync Backend API");
 });
 // Users
