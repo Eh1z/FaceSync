@@ -199,6 +199,24 @@ app.post("/courses", async (req, res) => {
 		res.status(500).json({ message: "Failed to add course" });
 	}
 });
+// Update course route
+app.put("/courses/:id", async (req, res) => {
+	try {
+		const { courseName, courseCode, lecturer } = req.body;
+		const updatedCourse = await Course.findByIdAndUpdate(
+			req.params.id,
+			{ courseName, courseCode, lecturer },
+			{ new: true } // This ensures the updated document is returned
+		).populate("lecturer");
+
+		if (!updatedCourse) {
+			return res.status(404).json({ message: "Course not found" });
+		}
+		res.json(updatedCourse); // Return the updated course
+	} catch (error) {
+		res.status(500).json({ message: "Failed to update course" });
+	}
+});
 
 // Start Server
 app.listen(PORT, () => {

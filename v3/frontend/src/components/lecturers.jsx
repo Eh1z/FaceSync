@@ -294,8 +294,7 @@ const Lecturers = () => {
 										lecturer.courses.length > 0 ? (
 											lecturer.courses.map((course) => (
 												<div key={course._id}>
-													{course.courseName} (
-													{course.courseCode})
+													{course.courseCode},
 												</div>
 											))
 										) : (
