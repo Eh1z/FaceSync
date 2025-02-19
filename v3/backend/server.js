@@ -251,7 +251,7 @@ app.get("/attendance-ratio", async (req, res) => {
 		const totalAttendance = await Attendance.countDocuments();
 		const ratio =
 			totalStudents > 0
-				? (totalAttendance / totalStudents).toFixed(2)
+				? `${totalAttendance}` + "/" + `${totalStudents}`
 				: 0;
 		res.json({ ratio });
 	} catch (error) {
