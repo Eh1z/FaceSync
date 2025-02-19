@@ -217,7 +217,94 @@ app.put("/courses/:id", async (req, res) => {
 		res.status(500).json({ message: "Failed to update course" });
 	}
 });
+//
+//
+//
+//
+//
+// Admin Dashboard Endpoints
 
+// 1. Get Total Students
+app.get("/students", async (req, res) => {
+	try {
+		const studentsCount = await User.countDocuments();
+		res.json({ totalStudents: studentsCount });
+	} catch (error) {
+		res.status(500).json({ message: "Failed to fetch students count" });
+	}
+});
+
+// 2. Get Total Attendance
+app.get("/attendance-total", async (req, res) => {
+	try {
+		const totalAttendance = await Attendance.countDocuments();
+		res.json({ totalAttendance });
+	} catch (error) {
+		res.status(500).json({ message: "Failed to fetch attendance count" });
+	}
+});
+
+// 3. Get Attendance/Student Ratio
+app.get("/attendance-ratio", async (req, res) => {
+	try {
+		const totalStudents = await User.countDocuments();
+		const totalAttendance = await Attendance.countDocuments();
+		const ratio =
+			totalStudents > 0
+				? (totalAttendance / totalStudents).toFixed(2)
+				: 0;
+		res.json({ ratio });
+	} catch (error) {
+		res.status(500).json({
+			message: "Failed to calculate attendance ratio",
+		});
+	}
+});
+
+// 4. Get Recent Attendance Activity
+app.get("/recent-activity", async (req, res) => {
+	try {
+		const records = await Attendance.find()
+			.populate("userId")
+			.sort({ createdAt: -1 })
+			.limit(5); // Get the last 5 attendance logs
+		res.json(records);
+	} catch (error) {
+		res.status(500).json({ message: "Failed to fetch recent activity" });
+	}
+});
+
+// 5. Get Attendance Trends (monthly or weekly)
+app.get("/attendance-trends", async (req, res) => {
+	try {
+		// Assuming we store dates in 'createdAt'
+		const trends = await Attendance.aggregate([
+			{
+				$group: {
+					_id: { $month: "$createdAt" }, // Group by month
+					totalAttendance: { $sum: 1 },
+				},
+			},
+			{ $sort: { _id: 1 } }, // Sort by month
+		]);
+		res.json(trends);
+	} catch (error) {
+		res.status(500).json({ message: "Failed to fetch attendance trends" });
+	}
+});
+
+// 6. Get Upcoming Courses
+app.get("/upcoming-courses", async (req, res) => {
+	try {
+		const upcomingCourses = await Course.find()
+			.populate("lecturer")
+			.sort({ startDate: 1 }) // Assuming you have a startDate field
+			.limit(5); // Show next 5 upcoming courses
+		res.json(upcomingCourses);
+	} catch (error) {
+		res.status(500).json({ message: "Failed to fetch upcoming courses" });
+	}
+});
 // Start Server
 app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`);
