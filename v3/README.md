@@ -20,7 +20,7 @@ FaceSync is a facial recognition–based class attendance and check-in system. T
 
 ## Overview
 
-FaceSync is designed to automate attendance tracking using facial recognition. The system allows:
+FaceSync is designed to automate attendance tracking using face-api.js, a javascript module, built on top of tensorflow.js core, which implements several CNNs (Convolutional Neural Networks) to solve face detection, face recognition and face landmark detection, which are optimized for the web and for mobile devices.. The system allows:
 - Student registration with face capture and course selection.
 - Lecturer and course management.
 - Real-time check-in using camera capture and face recognition.
