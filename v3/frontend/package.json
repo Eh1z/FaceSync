@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@clerk/clerk-react": "^5.21.2",
+    "@clerk/clerk-react": "^5.24.2",
     "@clerk/react-router": "^0.1.7",
     "@mediapipe/camera_utils": "^0.3.1675466862",
     "@mediapipe/face_mesh": "^0.4.1633559619",

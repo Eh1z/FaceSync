@@ -13,6 +13,7 @@ import Lecturers from "./components/lecturers";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import isAuth from "./utils/isAuth";
 
 const Layout = () => {
 	return (
@@ -49,4 +50,4 @@ const Layout = () => {
 	);
 };
 
-export default Layout;
+export default isAuth(Layout);

@@ -39,7 +39,6 @@ const Sidebar = () => {
 			name: "settings",
 			icon: <MdOutlineSettings />,
 		},
-		{ path: "/", name: "logout", icon: <BiLogOut /> },
 	];
 
 	return (
