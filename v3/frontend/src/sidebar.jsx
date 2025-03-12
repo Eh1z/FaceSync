@@ -15,17 +15,17 @@ const Sidebar = () => {
 		},
 		{
 			path: "/dashboard/registration",
-			name: "registration",
+			name: "student registration",
 			icon: <PiStudentFill />,
 		},
 		{
 			path: "/dashboard/courses",
-			name: "courses",
+			name: "course registration",
 			icon: <PiStudentFill />,
 		},
 		{
 			path: "/dashboard/students",
-			name: "students",
+			name: "students report",
 			icon: <PiStudentFill />,
 		},
 		{

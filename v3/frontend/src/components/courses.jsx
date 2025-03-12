@@ -7,12 +7,16 @@ import "react-toastify/dist/ReactToastify.css";
 const Courses = () => {
 	const [courseName, setCourseName] = useState("");
 	const [courseCode, setCourseCode] = useState("");
+	const [level, setLevel] = useState("");
+	const [semester, setSemester] = useState("");
 	const [lecturer, setLecturer] = useState("");
 	const [lecturers, setLecturers] = useState([]);
 	const [courses, setCourses] = useState([]);
 
 	const [editingCourse, setEditingCourse] = useState(null);
 	const [editingCourseName, setEditingCourseName] = useState("");
+	const [editingLevel, setEditingLevel] = useState("");
+	const [editingSemester, setEditingSemester] = useState("");
 	const [editingCourseCode, setEditingCourseCode] = useState("");
 	const [editingLecturer, setEditingLecturer] = useState("");
 
@@ -51,6 +55,8 @@ const Courses = () => {
 		const newCourse = {
 			courseName: courseName.trim(),
 			courseCode: courseCode.trim(),
+			level: level.trim(),
+			semester: semester.trim(),
 			lecturer: lecturer || null, // Optional: pass lecturer ID if selected
 		};
 
@@ -60,6 +66,8 @@ const Courses = () => {
 			// Reset form fields
 			setCourseName("");
 			setCourseCode("");
+			setLevel("");
+			setSemester("");
 			setLecturer("");
 			fetchCourses(); // Reload the list of courses after adding
 		} catch (error) {
@@ -73,6 +81,8 @@ const Courses = () => {
 		setEditingCourse(course);
 		setEditingCourseName(course.courseName);
 		setEditingCourseCode(course.courseCode);
+		setEditingLevel(course.level);
+		setEditingSemester(course.semester);
 		setEditingLecturer(course.lecturer ? course.lecturer._id : "");
 	};
 
@@ -80,6 +90,8 @@ const Courses = () => {
 		setEditingCourse(null);
 		setEditingCourseName("");
 		setEditingCourseCode("");
+		setEditingLevel("");
+		setEditingSemester("");
 		setEditingLecturer("");
 	};
 
@@ -93,6 +105,8 @@ const Courses = () => {
 		const updatedCourse = {
 			courseName: editingCourseName.trim(),
 			courseCode: editingCourseCode.trim(),
+			level: editingLevel.trim(),
+			semester: editingSemester.trim(),
 			lecturer: editingLecturer || null,
 		};
 
@@ -102,6 +116,8 @@ const Courses = () => {
 			setEditingCourse(null);
 			setEditingCourseName("");
 			setEditingCourseCode("");
+			setEditingLevel("");
+			setEditingSemester("");
 			setEditingLecturer("");
 			fetchCourses();
 		} catch (error) {
@@ -150,6 +166,38 @@ const Courses = () => {
 							required
 						/>
 					</div>
+					<div>
+						<label htmlFor="level" className="block text-gray-700">
+							Course Level
+						</label>
+						<input
+							type="text"
+							id="level"
+							value={level}
+							onChange={(e) => setLevel(e.target.value)}
+							className="w-full border p-2 rounded"
+							placeholder="Enter course Level"
+							required
+						/>
+					</div>
+					<div>
+						<label
+							htmlFor="semester"
+							className="block text-gray-700"
+						>
+							Course Semester
+						</label>
+						<input
+							type="text"
+							id="semester"
+							value={semester}
+							onChange={(e) => setSemester(e.target.value)}
+							className="w-full border p-2 rounded"
+							placeholder="Enter course code"
+							required
+						/>
+					</div>
+
 					<div>
 						<label
 							htmlFor="lecturer"

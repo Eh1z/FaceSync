@@ -76,6 +76,8 @@ const courseSchema = new mongoose.Schema(
 	{
 		courseName: String,
 		courseCode: String,
+		semester: String,
+		level: Number,
 		lecturer: { type: mongoose.Schema.Types.ObjectId, ref: "Lecturer" },
 	},
 	{ timestamps: true }
@@ -200,8 +202,14 @@ app.get("/courses", async (req, res) => {
 
 app.post("/courses", async (req, res) => {
 	try {
-		const { courseName, courseCode, lecturer } = req.body;
-		const newCourse = new Course({ courseName, courseCode, lecturer });
+		const { courseName, courseCode, level, semester, lecturer } = req.body;
+		const newCourse = new Course({
+			courseName,
+			courseCode,
+			level,
+			semester,
+			lecturer,
+		});
 		await newCourse.save();
 		res.status(201).json(newCourse);
 	} catch (error) {
@@ -211,10 +219,10 @@ app.post("/courses", async (req, res) => {
 // Update course route
 app.put("/courses/:id", async (req, res) => {
 	try {
-		const { courseName, courseCode, lecturer } = req.body;
+		const { courseName, courseCode, level, semester, lecturer } = req.body;
 		const updatedCourse = await Course.findByIdAndUpdate(
 			req.params.id,
-			{ courseName, courseCode, lecturer },
+			{ courseName, courseCode, level, semester, lecturer },
 			{ new: true } // This ensures the updated document is returned
 		).populate("lecturer");
 
