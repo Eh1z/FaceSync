@@ -93,6 +93,7 @@ const Course = mongoose.model("Course", courseSchema);
 app.get("/", (req, res) => {
 	res.json("Welcome to Face Sync Backend API");
 });
+
 // Users
 app.get("/users", async (req, res) => {
 	try {
