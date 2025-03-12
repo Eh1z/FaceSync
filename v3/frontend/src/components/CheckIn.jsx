@@ -8,20 +8,18 @@ import CameraComponent from "./Camera";
 const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const [users, setUsers] = useState([]);
 	const [isLoading, setIsLoading] = useState(true);
-	const [recognizedResults, setRecognizedResults] = useState([]); // Array of { detection, match, recognized }
+	const [recognizedResults, setRecognizedResults] = useState([]);
 	const [capturedImage, setCapturedImage] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [step, setStep] = useState("capturing"); // "capturing" or "preview"
+	const [step, setStep] = useState("capturing");
 
 	const cameraRef = useRef(null);
 	const imageRef = useRef(null);
 	const canvasRef = useRef(null);
 
-	// Fetch users and load face detection models on mount
 	useEffect(() => {
 		const fetchUsersAndLoadModels = async () => {
 			try {
-				// Fetch registered users from the backend.
 				const usersResponse = await getUsers();
 				setUsers(usersResponse.data);
 
@@ -43,7 +41,6 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		fetchUsersAndLoadModels();
 	}, []);
 
-	// Capture image from the camera
 	const handleCapture = () => {
 		if (cameraRef.current) {
 			const imageData = cameraRef.current.capture();
@@ -56,21 +53,21 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		}
 	};
 
-	// Process the captured image: detect faces and compare with stored user images.
 	const processCapturedImage = async () => {
-		if (!capturedImage || !canvasRef.current || !imageRef.current) return;
+		if (!capturedImage || !canvasRef.current) return;
 
-		// Use the already rendered image from imageRef
-		const img = imageRef.current;
-		// Get the displayed dimensions from the rendered image
-		const displayedWidth = img.offsetWidth;
-		const displayedHeight = img.offsetHeight;
+		// Create an image element from the captured base64 image.
+		const img = new Image();
+		img.src = capturedImage;
+		await new Promise((resolve) => {
+			img.onload = resolve;
+		});
 
-		// Set up canvas dimensions to match the displayed image.
+		// Set up canvas dimensions.
 		const canvas = canvasRef.current;
-		canvas.width = displayedWidth;
-		canvas.height = displayedHeight;
-		const displaySize = { width: displayedWidth, height: displayedHeight };
+		canvas.width = img.width;
+		canvas.height = img.height;
+		const displaySize = { width: img.width, height: img.height };
 		faceapi.matchDimensions(canvas, displaySize);
 
 		try {
@@ -100,7 +97,6 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 
 				// Loop through each user.
 				for (let user of users) {
-					// If the user doesn’t already have a descriptor cached, compute it.
 					if (!user.descriptor && user.userImage) {
 						const userImg = new Image();
 						userImg.src = user.userImage;
@@ -150,7 +146,6 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 				new faceapi.draw.DrawBox(box, { label: "", boxColor }).draw(
 					canvas
 				);
-				// If recognized, write the name above the box.
 				if (res.recognized && res.match && res.match.name) {
 					ctx.font = "16px Arial";
 					ctx.fillStyle = "white";
@@ -165,14 +160,12 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		}
 	};
 
-	// Process image once captured when we transition to "preview" step.
 	useEffect(() => {
 		if (step === "preview" && capturedImage) {
 			processCapturedImage();
 		}
 	}, [step, capturedImage]);
 
-	// Confirm attendance for all recognized users.
 	const handleConfirmAttendance = async () => {
 		const recognizedUsers = recognizedResults
 			.filter((r) => r.recognized && r.match)
@@ -185,13 +178,11 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 
 		setIsSubmitting(true);
 		try {
-			// Mark attendance for each recognized user.
 			for (let user of recognizedUsers) {
 				await markAttendance(user._id);
 			}
 			toast.success("Attendance marked for recognized user(s)!");
 			onMarkAttendance(); // Optionally refresh attendance records
-			// Reset state for a new check-in.
 			setRecognizedResults([]);
 			setCapturedImage(null);
 			setStep("capturing");
@@ -203,7 +194,6 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		}
 	};
 
-	// Allow retaking the check-in image.
 	const handleRetake = () => {
 		setCapturedImage(null);
 		setRecognizedResults([]);
@@ -224,7 +214,7 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 							<CameraComponent ref={cameraRef} />
 							<button
 								type="button"
-								onClick={handleCapture}
+								onClick={() => handleCapture()}
 								className="mt-4 w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition duration-200"
 							>
 								Capture
@@ -244,25 +234,25 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 							<h2 className="text-xl font-semibold mb-4 text-gray-700">
 								Review Check-In Photo
 							</h2>
-							<div className="relative inline-block">
-								{capturedImage && (
-									<img
-										ref={imageRef}
-										src={capturedImage}
-										alt="Captured Check-In"
-										style={{ maxWidth: "100%" }}
-									/>
-								)}
-								<canvas
-									ref={canvasRef}
-									style={{
-										position: "absolute",
-										top: 0,
-										left: 0,
-										pointerEvents: "none",
-									}}
+							{capturedImage && (
+								<img
+									ref={imageRef}
+									src={capturedImage}
+									alt="Captured Check-In"
+									style={{ maxWidth: "100%" }}
 								/>
-							</div>
+							)}
+							<canvas
+								ref={canvasRef}
+								style={{
+									position: "absolute",
+									top: 0,
+									left: 0,
+									pointerEvents: "none",
+									width: "100%",
+									height: "100%",
+								}}
+							/>
 							<div className="flex justify-between mt-4">
 								<button
 									type="button"

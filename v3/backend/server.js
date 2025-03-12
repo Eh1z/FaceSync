@@ -47,7 +47,9 @@ const userSchema = new mongoose.Schema(
 	{
 		name: String,
 		email: String,
-		faceData: Array, // Facial landmarks/embeddings
+		mat_num: String,
+		studentId: String,
+		userImage: String,
 		courses: [{ type: mongoose.Schema.Types.ObjectId, ref: "Course" }],
 	},
 	{ timestamps: true }
@@ -101,8 +103,15 @@ app.get("/users", async (req, res) => {
 
 app.post("/users", async (req, res) => {
 	try {
-		const { name, email, faceData, courses } = req.body;
-		const newUser = new User({ name, email, faceData, courses });
+		const { name, email, studentId, mat_num, faceData, courses } = req.body;
+		const newUser = new User({
+			name,
+			email,
+			studentId,
+			mat_num,
+			faceData,
+			courses,
+		});
 		await newUser.save();
 		res.status(201).json(newUser);
 	} catch (error) {

@@ -34,10 +34,8 @@ const Dashboard = () => {
 
 			const ratioData = await getAttendanceRatio();
 			setAttendanceRatio(ratioData.data.ratio);
-			console.log("ratioData data: ", ratioData);
 
 			const recentActivityData = await getRecentActivity();
-			// Make sure the data is an array before setting the state
 			setRecentActivity(
 				Array.isArray(recentActivityData) ? recentActivityData : []
 			);
@@ -56,20 +54,27 @@ const Dashboard = () => {
 
 	// Chart for Attendance Trends
 	useEffect(() => {
-		if (attendanceTrends.length > 0) {
+		if (attendanceTrends.data) {
 			const ctx = document
 				.getElementById("attendanceTrendsChart")
 				.getContext("2d");
-			new Chart(ctx, {
+
+			// Destroy the previous chart if it exists
+			if (window.attendanceChart) {
+				window.attendanceChart.destroy();
+			}
+
+			// Create new chart instance
+			window.attendanceChart = new Chart(ctx, {
 				type: "line",
 				data: {
-					labels: attendanceTrends.map(
+					labels: attendanceTrends.data.map(
 						(trend) => `Month ${trend._id}`
 					),
 					datasets: [
 						{
 							label: "Attendance",
-							data: attendanceTrends.map(
+							data: attendanceTrends.data.map(
 								(trend) => trend.totalAttendance
 							),
 							fill: false,
@@ -87,7 +92,7 @@ const Dashboard = () => {
 				},
 			});
 		}
-	}, [attendanceTrends]);
+	}, [attendanceTrends]); // Re-run the chart rendering when attendanceTrends changes
 
 	return (
 		<div className="min-h-screen bg-gray-100 p-6">

@@ -1,4 +1,3 @@
-// src/components/Register.jsx
 import React, { useState, useRef, useEffect } from "react";
 import CameraComponent from "./Camera";
 import { toast } from "react-toastify";
@@ -8,10 +7,32 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 	const [step, setStep] = useState("form");
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
-	const [selectedCourses, setSelectedCourses] = useState([]); // New state for courses
+	const [studentId, setStudentId] = useState("");
+	const [mat_num, setMat_num] = useState("");
+	const [selectedCourses, setSelectedCourses] = useState([]); // State to store selected courses
 	const [capturedImage, setCapturedImage] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const cameraRef = useRef(null);
+
+	// Handle multi-select change for courses
+	const handleCourseChange = (e) => {
+		// Using the spread operator to keep the previous selections and add the new ones
+		const selected = Array.from(
+			e.target.selectedOptions,
+			(option) => option.value
+		);
+		setSelectedCourses((prevSelectedCourses) => [
+			...prevSelectedCourses, // Keep previous selections
+			...selected.filter(
+				(course) => !prevSelectedCourses.includes(course)
+			), // Add new selections
+		]);
+	};
+
+	// Handle course removal
+	const handleRemoveCourse = (courseId) => {
+		setSelectedCourses((prev) => prev.filter((id) => id !== courseId));
+	};
 
 	const handleStartCapture = () => {
 		if (!name.trim() || !email.trim() || selectedCourses.length === 0) {
@@ -55,6 +76,8 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 		const user = {
 			name: name.trim(),
 			email: email.trim(),
+			mat_num: mat_num.trim(),
+			studentId: studentId.trim(),
 			userImage: capturedImage, // Captured face image
 			courses: selectedCourses, // Selected course IDs
 		};
@@ -66,6 +89,8 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 			setStep("form");
 			setName("");
 			setEmail("");
+			setStudentId("");
+			setMat_num("");
 			setSelectedCourses([]);
 			setCapturedImage(null);
 		} catch (error) {
@@ -73,15 +98,6 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 		} finally {
 			setIsSubmitting(false);
 		}
-	};
-
-	// Handle multi-select change for courses
-	const handleCourseChange = (e) => {
-		const selected = Array.from(
-			e.target.selectedOptions,
-			(option) => option.value
-		);
-		setSelectedCourses(selected);
 	};
 
 	useEffect(() => {
@@ -117,6 +133,38 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 						<div>
 							<label
 								className="block text-gray-600 mb-1"
+								htmlFor="name"
+							>
+								Student ID
+							</label>
+							<input
+								id="name"
+								type="text"
+								className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+								placeholder="Enter your name"
+								value={studentId}
+								onChange={(e) => setStudentId(e.target.value)}
+							/>
+						</div>
+						<div>
+							<label
+								className="block text-gray-600 mb-1"
+								htmlFor="name"
+							>
+								Mat. Number
+							</label>
+							<input
+								id="name"
+								type="text"
+								className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+								placeholder="Enter your name"
+								value={mat_num}
+								onChange={(e) => setMat_num(e.target.value)}
+							/>
+						</div>
+						<div>
+							<label
+								className="block text-gray-600 mb-1"
 								htmlFor="email"
 							>
 								Email
@@ -130,6 +178,8 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 								onChange={(e) => setEmail(e.target.value)}
 							/>
 						</div>
+
+						{/* Select Courses */}
 						<div>
 							<label
 								className="block text-gray-600 mb-1"
@@ -156,6 +206,46 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 									))}
 							</select>
 						</div>
+
+						{/* Display selected courses */}
+						{selectedCourses.length > 0 && (
+							<div className="mb-4">
+								<h4 className="font-semibold">
+									Selected Courses:
+								</h4>
+								<div className="flex flex-wrap gap-2">
+									{selectedCourses.map((courseId) => {
+										const courseObj = courses.find(
+											(course) => course._id === courseId
+										);
+										return (
+											<div
+												key={courseId}
+												className="flex items-center bg-gray-200 rounded px-2 py-1"
+											>
+												<span className="mr-2">
+													{courseObj
+														? courseObj.courseCode
+														: courseId}
+												</span>
+												<button
+													type="button"
+													onClick={() =>
+														handleRemoveCourse(
+															courseId
+														)
+													}
+													className="text-red-500"
+												>
+													x
+												</button>
+											</div>
+										);
+									})}
+								</div>
+							</div>
+						)}
+
 						<button
 							type="button"
 							onClick={handleStartCapture}
