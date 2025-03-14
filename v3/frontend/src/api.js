@@ -1,14 +1,19 @@
 import axios from "axios";
 
 // Base URL for the API
-// const API_URL = "https://face-sync-backend.vercel.app";
-const API_URL = "http://localhost:5000";
+const API_URL = "https://face-sync-backend.vercel.app";
+// const API_URL = "http://localhost:5000";
 
 // Fetch Functions
 export const getUsers = () => axios.get(`${API_URL}/users`);
-export const getAttendance = () => axios.get(`${API_URL}/attendance`);
+export const getAttendance = (name = "", date = "") =>
+	axios.get(`${API_URL}/attendance`, {
+		params: { name, date },
+	});
+
 export const getLecturers = () => axios.get(`${API_URL}/lecturers`);
-export const getCourses = () => axios.get(`${API_URL}/courses`);
+export const getCourses = (level = "", semester = "") =>
+	axios.get(`${API_URL}/courses?level=${level}&semester=${semester}`);
 
 // New Fetch Functions for Dashboard Data
 export const getStudents = () => axios.get(`${API_URL}/students`);
@@ -25,8 +30,8 @@ export const addUser = (user) => axios.post(`${API_URL}/users`, user);
 export const addLecturer = (lecturer) =>
 	axios.post(`${API_URL}/lecturers`, lecturer);
 export const addCourse = (course) => axios.post(`${API_URL}/courses`, course);
-export const createAttendanceList = (attendanceData) =>
-	axios.post(`${API_URL}/attendance`, attendanceData);
+export const createAttendanceList = (courseCode) =>
+	axios.post(`${API_URL}/attendance`, { courseCode });
 
 // Update Functions
 export const markAttendance = (userId) =>

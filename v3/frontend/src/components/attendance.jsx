@@ -12,8 +12,9 @@ import "react-toastify/dist/ReactToastify.css";
 
 const Attendance = () => {
 	const [levels] = useState(["100L", "200L", "300L", "400L", "500L"]);
-	const [semesters] = useState(["First", "Second"]);
+	const [semesters] = useState(["first", "second"]);
 	const [selectedLevel, setSelectedLevel] = useState("");
+	const [selectedDate, setSelectedDate] = useState(null);
 	const [selectedSemester, setSelectedSemester] = useState("");
 	const [courses, setCourses] = useState([]);
 	const [selectedCourse, setSelectedCourse] = useState(null);
@@ -37,6 +38,7 @@ const Attendance = () => {
 	const createAttendance = async () => {
 		if (selectedCourse) {
 			try {
+				//console.log("course code", selectedCourse);
 				await createAttendanceList(selectedCourse);
 				fetchAttendance();
 			} catch (err) {
@@ -47,12 +49,15 @@ const Attendance = () => {
 	};
 
 	const fetchAttendance = async () => {
-		if (selectedCourse) {
+		if (selectedCourse && selectedDate) {
 			try {
-				const response = await getAttendance(selectedCourse);
+				console.log("course code", selectedCourse);
+				const response = await getAttendance(
+					selectedCourse,
+					selectedDate
+				);
 				setAttendance(response.data);
 			} catch (err) {
-				console.error("Error fetching attendance records:", err);
 				toast.error("Failed to fetch attendance records.");
 			}
 		}
@@ -94,14 +99,14 @@ const Attendance = () => {
 						))}
 					</select>
 					<select
-						value={selectedCourse || ""}
+						value={selectedCourse}
 						onChange={(e) => setSelectedCourse(e.target.value)}
 						className="p-2 border rounded"
 					>
 						<option value="">Select Course</option>
 						{courses.map((course) => (
-							<option key={course._id} value={course._id}>
-								{course.name}
+							<option key={course._id} value={course.courseCode}>
+								{course.courseName}
 							</option>
 						))}
 					</select>
@@ -120,6 +125,34 @@ const Attendance = () => {
 						? `${selectedCourse} Attendance List`
 						: "Attendance List"}
 				</h2>
+
+				<div className="flex items-center gap-4 mb-4">
+					<select
+						className="border p-2 rounded-md"
+						onChange={(e) => setSelectedCourse(e.target.value)}
+					>
+						<option value="">Select Course</option>
+						{courses.map((course) => (
+							<option key={course._id} value={course.courseCode}>
+								{course.courseName}
+							</option>
+						))}
+					</select>
+
+					<input
+						type="date"
+						className="border p-2 rounded-md"
+						onChange={(e) => setSelectedDate(e.target.value)}
+					/>
+
+					<button
+						onClick={fetchAttendance}
+						className="bg-blue-500 text-white px-4 py-2 rounded-md"
+					>
+						Fetch Attendance
+					</button>
+				</div>
+
 				<div className="bg-white shadow rounded-lg p-4">
 					{attendance.length === 0 ? (
 						<p className="text-center text-gray-500">
@@ -130,7 +163,7 @@ const Attendance = () => {
 							<thead>
 								<tr>
 									<th>User Name</th>
-									<th>Email</th>
+									<th>Mat. Number</th>
 									<th>Status</th>
 								</tr>
 							</thead>
@@ -138,10 +171,11 @@ const Attendance = () => {
 								{attendance.map((record) => (
 									<tr key={record._id}>
 										<td>
-											{record.userId?.name || "Unknown"}
+											{record.student?.name || "Unknown"}
 										</td>
 										<td>
-											{record.userId?.email || "Unknown"}
+											{record.student?.mat_num ||
+												"Unknown"}
 										</td>
 										<td>{record.status || "Absent"}</td>
 									</tr>

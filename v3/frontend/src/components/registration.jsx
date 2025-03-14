@@ -13,6 +13,7 @@ const Registration = () => {
 		const fetchCourses = async () => {
 			try {
 				const response = await getCourses();
+				console.log("courses: ", response.data);
 				setCourses(response.data);
 			} catch (error) {
 				console.error("Error fetching courses:", error);

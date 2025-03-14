@@ -1,12 +1,13 @@
 // backend/server.js
 const express = require("express");
 const mongoose = require("mongoose");
+const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-
+app.use(cors());
 app.use(express.json());
 
 const mongoURI =
@@ -57,8 +58,17 @@ const userSchema = new mongoose.Schema(
 
 const attendanceSchema = new mongoose.Schema({
 	course: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
-	userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-	status: { type: String, enum: ["Present", "Absent"], default: "Absent" },
+	name: { type: String },
+	students: [
+		{
+			student: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+			status: {
+				type: String,
+				enum: ["Present", "Absent"],
+				default: "Absent",
+			},
+		},
+	],
 	createdAt: { type: Date, default: Date.now },
 });
 
@@ -76,7 +86,7 @@ const courseSchema = new mongoose.Schema(
 		courseName: String,
 		courseCode: String,
 		semester: String,
-		level: Number,
+		level: String,
 		lecturer: { type: mongoose.Schema.Types.ObjectId, ref: "Lecturer" },
 	},
 	{ timestamps: true }
@@ -103,13 +113,14 @@ app.get("/users", async (req, res) => {
 
 app.post("/users", async (req, res) => {
 	try {
-		const { name, email, studentId, mat_num, faceData, courses } = req.body;
+		const { name, email, studentId, mat_num, userImage, courses } =
+			req.body;
 		const newUser = new User({
 			name,
 			email,
 			studentId,
 			mat_num,
-			faceData,
+			userImage,
 			courses,
 		});
 		await newUser.save();
@@ -133,31 +144,70 @@ app.delete("/users/:id", async (req, res) => {
 // Attendance Routes
 app.post("/attendance", async (req, res) => {
 	try {
-		const { userId, courseId } = req.body;
-		const newAttendance = new Attendance({ userId, course: courseId });
+		const { courseCode } = req.body;
+
+		// Find the course based on the course code
+		const course = await Course.findOne({ courseCode });
+
+		if (!course) {
+			return res.status(404).json({ message: "Course not found" });
+		}
+
+		// Find all students enrolled in this course
+		const students = await User.find({ courses: course._id });
+
+		// Prepare the student list with default status 'Absent'
+		const studentList = students.map((student) => ({
+			student: student._id,
+			status: "Absent",
+		}));
+
+		// 4Create new attendance record
+		const newAttendance = new Attendance({
+			course: course._id,
+			name: course.courseCode,
+			students: studentList,
+		});
+
+		// 5Save the attendance
 		await newAttendance.save();
+
 		res.status(201).json(newAttendance);
 	} catch (error) {
-		res.status(500).json({ message: "Failed to mark attendance" });
+		console.error(error);
+		res.status(500).json({ message: "Failed to create attendance" });
 	}
 });
 
 app.get("/attendance", async (req, res) => {
 	try {
-		const { courseId, semester } = req.query;
+		const { name, date } = req.query;
+
 		let filter = {};
 
-		if (courseId) filter.course = courseId;
-		if (semester) {
-			const courses = await Course.find({ semester });
-			const courseIds = courses.map((course) => course._id);
-			filter.course = { $in: courseIds };
+		// Filter by course name
+		if (name) filter.course = name;
+
+		// Filter by exact date (ignores time)
+		if (date) {
+			const startOfDay = new Date(date);
+			startOfDay.setHours(0, 0, 0, 0);
+			const endOfDay = new Date(date);
+			endOfDay.setHours(23, 59, 59, 999);
+			filter.createdAt = { $gte: startOfDay, $lte: endOfDay };
 		}
 
-		const records = await Attendance.find(filter)
-			.populate("userId")
+		// Fetch attendance records
+		const records = await Attendance.find({ name: name })
+			.populate({
+				path: "students.student", // This deeply populates the student field
+				model: "User", // Your student model
+			})
 			.populate("course")
-			.sort({ createdAt: "desc" });
+			.lean()
+			.sort({ createdAt: "desc" })
+			.limit(name || date ? undefined : 1);
+		console.log(records);
 		res.json(records);
 	} catch (error) {
 		res.status(500).json({ message: "Failed to fetch attendance records" });
@@ -213,8 +263,18 @@ app.put("/lecturers/:id", async (req, res) => {
 
 // Course Routes
 app.get("/courses", async (req, res) => {
+	const { level, semester } = req.query; // Get from query parameters
+
 	try {
-		const courses = await Course.find().populate("lecturer");
+		// Filter based on level and semester
+		const filter = {};
+
+		if (level) filter.level = level;
+		if (semester) filter.semester = semester;
+		console.log("logging filters: ", filter);
+
+		const courses = await Course.find(filter).populate("lecturer");
+		console.log("logging results: ", courses);
 		res.json(courses);
 	} catch (error) {
 		res.status(500).json({ message: "Failed to fetch courses" });
@@ -342,4 +402,3 @@ app.get("/upcoming-courses", async (req, res) => {
 
 // Start Server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-module.exports = app;
