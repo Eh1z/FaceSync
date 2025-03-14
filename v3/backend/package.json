@@ -7,9 +7,6 @@
     "dev": "nodemon server.js",
     "start": "node server.js"
   },
-  "engines": {
-    "node": "20.x"
-  },
   "author": "Godsent Ehiz",
   "license": "ISC",
   "description": "",
