@@ -235,6 +235,46 @@ app.put("/courses/:id", async (req, res) => {
 		res.status(500).json({ message: "Failed to update course" });
 	}
 });
+
+// Delete User
+app.delete("/users/:id", async (req, res) => {
+	try {
+		const deletedUser = await User.findByIdAndDelete(req.params.id);
+		if (!deletedUser) {
+			return res.status(404).json({ message: "User not found" });
+		}
+		res.status(200).json({ message: "User deleted successfully" });
+	} catch (error) {
+		res.status(500).json({ message: "Failed to delete user" });
+	}
+});
+
+// Delete Lecturer
+app.delete("/lecturers/:id", async (req, res) => {
+	try {
+		const deletedLecturer = await Lecturer.findByIdAndDelete(req.params.id);
+		if (!deletedLecturer) {
+			return res.status(404).json({ message: "Lecturer not found" });
+		}
+		res.status(200).json({ message: "Lecturer deleted successfully" });
+	} catch (error) {
+		res.status(500).json({ message: "Failed to delete lecturer" });
+	}
+});
+
+// Delete Course
+app.delete("/courses/:id", async (req, res) => {
+	try {
+		const deletedCourse = await Course.findByIdAndDelete(req.params.id);
+		if (!deletedCourse) {
+			return res.status(404).json({ message: "Course not found" });
+		}
+		res.status(200).json({ message: "Course deleted successfully" });
+	} catch (error) {
+		res.status(500).json({ message: "Failed to delete course" });
+	}
+});
+
 //
 //
 //

@@ -36,3 +36,9 @@ export const updateCourse = (id, updatedCourse) =>
 // New Update Functions for Dashboard Data
 export const updateStudentAttendance = (studentId, attendanceData) =>
 	axios.put(`${API_URL}/attendance/${studentId}`, attendanceData);
+
+// Delete Functions
+export const deleteUser = (id) => axios.delete(`${API_URL}/users/${id}`);
+export const deleteLecturer = (id) =>
+	axios.delete(`${API_URL}/lecturers/${id}`);
+export const deleteCourse = (id) => axios.delete(`${API_URL}/courses/${id}`);
