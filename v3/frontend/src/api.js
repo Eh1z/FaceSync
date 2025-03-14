@@ -24,6 +24,8 @@ export const addUser = (user) => axios.post(`${API_URL}/users`, user);
 export const addLecturer = (lecturer) =>
 	axios.post(`${API_URL}/lecturers`, lecturer);
 export const addCourse = (course) => axios.post(`${API_URL}/courses`, course);
+export const createAttendanceList = (attendanceData) =>
+	axios.post(`${API_URL}/attendance`, attendanceData);
 
 // Update Functions
 export const markAttendance = (userId) =>

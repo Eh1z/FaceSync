@@ -27,15 +27,16 @@ const connectDB = async () => {
 connectDB();
 
 // Handle connection events
-mongoose.connection.on("connected", () => {
-	console.log("Mongoose has connected to your DB");
-});
-mongoose.connection.on("error", (err) => {
-	console.log("Mongoose connection error: " + err);
-});
-mongoose.connection.on("disconnected", () => {
-	console.log("Mongoose disconnected");
-});
+mongoose.connection.on("connected", () =>
+	console.log("Mongoose has connected to your DB")
+);
+mongoose.connection.on("error", (err) =>
+	console.log("Mongoose connection error: " + err)
+);
+mongoose.connection.on("disconnected", () =>
+	console.log("Mongoose disconnected")
+);
+
 process.on("SIGINT", async () => {
 	await mongoose.connection.close();
 	console.log("Mongoose disconnected on app termination");
@@ -55,13 +56,12 @@ const userSchema = new mongoose.Schema(
 	{ timestamps: true }
 );
 
-const attendanceSchema = new mongoose.Schema(
-	{
-		userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-		courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
-	},
-	{ timestamps: true }
-);
+const attendanceSchema = new mongoose.Schema({
+	course: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
+	userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+	status: { type: String, enum: ["Present", "Absent"], default: "Absent" },
+	createdAt: { type: Date, default: Date.now },
+});
 
 const lecturerSchema = new mongoose.Schema(
 	{
@@ -90,11 +90,9 @@ const Lecturer = mongoose.model("Lecturer", lecturerSchema);
 const Course = mongoose.model("Course", courseSchema);
 
 // Routes
-app.get("/", (req, res) => {
-	res.json("Welcome to Face Sync Backend API");
-});
+app.get("/", (req, res) => res.json("Welcome to Face Sync Backend API"));
 
-// Users
+// User Routes
 app.get("/users", async (req, res) => {
 	try {
 		const users = await User.find().populate("courses");
@@ -122,11 +120,22 @@ app.post("/users", async (req, res) => {
 	}
 });
 
-// Attendance
+app.delete("/users/:id", async (req, res) => {
+	try {
+		const deletedUser = await User.findByIdAndDelete(req.params.id);
+		if (!deletedUser)
+			return res.status(404).json({ message: "User not found" });
+		res.status(200).json({ message: "User deleted successfully" });
+	} catch (error) {
+		res.status(500).json({ message: "Failed to delete user" });
+	}
+});
+
+// Attendance Routes
 app.post("/attendance", async (req, res) => {
 	try {
 		const { userId, courseId } = req.body;
-		const newAttendance = new Attendance({ userId, courseId });
+		const newAttendance = new Attendance({ userId, course: courseId });
 		await newAttendance.save();
 		res.status(201).json(newAttendance);
 	} catch (error) {
@@ -136,9 +145,19 @@ app.post("/attendance", async (req, res) => {
 
 app.get("/attendance", async (req, res) => {
 	try {
-		const records = await Attendance.find()
+		const { courseId, semester } = req.query;
+		let filter = {};
+
+		if (courseId) filter.course = courseId;
+		if (semester) {
+			const courses = await Course.find({ semester });
+			const courseIds = courses.map((course) => course._id);
+			filter.course = { $in: courseIds };
+		}
+
+		const records = await Attendance.find(filter)
 			.populate("userId")
-			.populate("courseId")
+			.populate("course")
 			.sort({ createdAt: "desc" });
 		res.json(records);
 	} catch (error) {
@@ -146,7 +165,20 @@ app.get("/attendance", async (req, res) => {
 	}
 });
 
-// Lecturers
+app.put("/attendance/:studentId", async (req, res) => {
+	try {
+		const updatedAttendance = await Attendance.findOneAndUpdate(
+			{ userId: req.params.studentId },
+			req.body,
+			{ new: true }
+		);
+		res.json(updatedAttendance);
+	} catch (error) {
+		res.status(500).json({ message: "Failed to update attendance" });
+	}
+});
+
+// Lecturer Routes
 app.get("/lecturers", async (req, res) => {
 	try {
 		const lecturers = await Lecturer.find().populate("courses");
@@ -169,29 +201,18 @@ app.post("/lecturers", async (req, res) => {
 
 app.put("/lecturers/:id", async (req, res) => {
 	try {
-		const { name, email, courses } = req.body;
-		// Use exec() to ensure the query executes correctly when chaining populate
 		const updatedLecturer = await Lecturer.findByIdAndUpdate(
 			req.params.id,
-			{ name, email, courses },
+			req.body,
 			{ new: true }
-		)
-			.populate("courses")
-			.exec();
-		if (!updatedLecturer) {
-			return res.status(404).json({ message: "Lecturer not found" });
-		}
+		);
 		res.json(updatedLecturer);
 	} catch (error) {
-		console.error("Update Lecturer Error:", error); // Log detailed error info
-		res.status(500).json({
-			message: "Failed to update lecturer",
-			error: error.message,
-		});
+		res.status(500).json({ message: "Failed to update lecturer" });
 	}
 });
 
-// Courses
+// Course Routes
 app.get("/courses", async (req, res) => {
 	try {
 		const courses = await Course.find().populate("lecturer");
@@ -217,153 +238,19 @@ app.post("/courses", async (req, res) => {
 		res.status(500).json({ message: "Failed to add course" });
 	}
 });
-// Update course route
+
 app.put("/courses/:id", async (req, res) => {
 	try {
-		const { courseName, courseCode, level, semester, lecturer } = req.body;
 		const updatedCourse = await Course.findByIdAndUpdate(
 			req.params.id,
-			{ courseName, courseCode, level, semester, lecturer },
-			{ new: true } // This ensures the updated document is returned
-		).populate("lecturer");
-
-		if (!updatedCourse) {
-			return res.status(404).json({ message: "Course not found" });
-		}
-		res.json(updatedCourse); // Return the updated course
+			req.body,
+			{ new: true }
+		);
+		res.json(updatedCourse);
 	} catch (error) {
 		res.status(500).json({ message: "Failed to update course" });
 	}
 });
 
-// Delete User
-app.delete("/users/:id", async (req, res) => {
-	try {
-		const deletedUser = await User.findByIdAndDelete(req.params.id);
-		if (!deletedUser) {
-			return res.status(404).json({ message: "User not found" });
-		}
-		res.status(200).json({ message: "User deleted successfully" });
-	} catch (error) {
-		res.status(500).json({ message: "Failed to delete user" });
-	}
-});
-
-// Delete Lecturer
-app.delete("/lecturers/:id", async (req, res) => {
-	try {
-		const deletedLecturer = await Lecturer.findByIdAndDelete(req.params.id);
-		if (!deletedLecturer) {
-			return res.status(404).json({ message: "Lecturer not found" });
-		}
-		res.status(200).json({ message: "Lecturer deleted successfully" });
-	} catch (error) {
-		res.status(500).json({ message: "Failed to delete lecturer" });
-	}
-});
-
-// Delete Course
-app.delete("/courses/:id", async (req, res) => {
-	try {
-		const deletedCourse = await Course.findByIdAndDelete(req.params.id);
-		if (!deletedCourse) {
-			return res.status(404).json({ message: "Course not found" });
-		}
-		res.status(200).json({ message: "Course deleted successfully" });
-	} catch (error) {
-		res.status(500).json({ message: "Failed to delete course" });
-	}
-});
-
-//
-//
-//
-//
-//
-// Admin Dashboard Endpoints
-
-// 1. Get Total Students
-app.get("/students", async (req, res) => {
-	try {
-		const studentsCount = await User.countDocuments();
-		res.json({ totalStudents: studentsCount });
-	} catch (error) {
-		res.status(500).json({ message: "Failed to fetch students count" });
-	}
-});
-
-// 2. Get Total Attendance
-app.get("/attendance-total", async (req, res) => {
-	try {
-		const totalAttendance = await Attendance.countDocuments();
-		res.json({ totalAttendance });
-	} catch (error) {
-		res.status(500).json({ message: "Failed to fetch attendance count" });
-	}
-});
-
-// 3. Get Attendance/Student Ratio
-app.get("/attendance-ratio", async (req, res) => {
-	try {
-		const totalStudents = await User.countDocuments();
-		const totalAttendance = await Attendance.countDocuments();
-		const ratio =
-			totalStudents > 0
-				? `${totalAttendance}` + "/" + `${totalStudents}`
-				: 0;
-		res.json({ ratio });
-	} catch (error) {
-		res.status(500).json({
-			message: "Failed to calculate attendance ratio",
-		});
-	}
-});
-
-// 4. Get Recent Attendance Activity
-app.get("/recent-activity", async (req, res) => {
-	try {
-		const records = await Attendance.find()
-			.populate("userId")
-			.sort({ createdAt: -1 })
-			.limit(5); // Get the last 5 attendance logs
-		res.json(records);
-	} catch (error) {
-		res.status(500).json({ message: "Failed to fetch recent activity" });
-	}
-});
-
-// 5. Get Attendance Trends (monthly or weekly)
-app.get("/attendance-trends", async (req, res) => {
-	try {
-		// Assuming we store dates in 'createdAt'
-		const trends = await Attendance.aggregate([
-			{
-				$group: {
-					_id: { $month: "$createdAt" }, // Group by month
-					totalAttendance: { $sum: 1 },
-				},
-			},
-			{ $sort: { _id: 1 } }, // Sort by month
-		]);
-		res.json(trends);
-	} catch (error) {
-		res.status(500).json({ message: "Failed to fetch attendance trends" });
-	}
-});
-
-// 6. Get Upcoming Courses
-app.get("/upcoming-courses", async (req, res) => {
-	try {
-		const upcomingCourses = await Course.find()
-			.populate("lecturer")
-			.sort({ startDate: 1 }) // Assuming you have a startDate field
-			.limit(5); // Show next 5 upcoming courses
-		res.json(upcomingCourses);
-	} catch (error) {
-		res.status(500).json({ message: "Failed to fetch upcoming courses" });
-	}
-});
 // Start Server
-app.listen(PORT, () => {
-	console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
