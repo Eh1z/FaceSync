@@ -8,13 +8,11 @@ import CameraComponent from "./Camera";
 const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const [users, setUsers] = useState([]);
 	const [isLoading, setIsLoading] = useState(true);
-	const [recognizedResults, setRecognizedResults] = useState([]);
 	const [capturedImage, setCapturedImage] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [step, setStep] = useState("capturing");
 
 	const cameraRef = useRef(null);
-	const imageRef = useRef(null);
 	const canvasRef = useRef(null);
 
 	useEffect(() => {
@@ -23,9 +21,8 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 				const usersResponse = await getUsers();
 				setUsers(usersResponse.data);
 
-				// Load required models
 				await Promise.all([
-					faceapi.nets.ssdMobilenetv1.loadFromUri("/models"),
+					faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
 					faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
 					faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
 				]);
@@ -56,108 +53,38 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const processCapturedImage = async () => {
 		if (!capturedImage || !canvasRef.current) return;
 
-		// Create an image element from the captured base64 image.
 		const img = new Image();
 		img.src = capturedImage;
-		await new Promise((resolve) => {
-			img.onload = resolve;
-		});
+		await new Promise((resolve) => (img.onload = resolve));
 
-		// Set up canvas dimensions.
 		const canvas = canvasRef.current;
+		const ctx = canvas.getContext("2d");
 		canvas.width = img.width;
 		canvas.height = img.height;
-		const displaySize = { width: img.width, height: img.height };
-		faceapi.matchDimensions(canvas, displaySize);
 
-		try {
-			// Detect all faces in the captured image along with landmarks and descriptors.
-			const detections = await faceapi
-				.detectAllFaces(img)
-				.withFaceLandmarks()
-				.withFaceDescriptors();
+		ctx.drawImage(img, 0, 0, img.width, img.height);
 
-			if (detections.length === 0) {
-				toast.error("No face detected in the captured image.");
-				setRecognizedResults([]);
-				return;
-			}
+		const detections = await faceapi.detectAllFaces(
+			img,
+			new faceapi.TinyFaceDetectorOptions()
+		);
 
-			// Resize detections to match the display size.
-			const resizedDetections = faceapi.resizeResults(
-				detections,
-				displaySize
-			);
-
-			const results = [];
-			// For each detected face, compare with each registered user.
-			for (let detection of detections) {
-				let bestMatch = null;
-				let minDistance = Infinity;
-
-				// Loop through each user.
-				for (let user of users) {
-					if (!user.descriptor && user.userImage) {
-						const userImg = new Image();
-						userImg.src = user.userImage;
-						await new Promise((resolve) => {
-							userImg.onload = resolve;
-						});
-						const userDetection = await faceapi
-							.detectSingleFace(userImg)
-							.withFaceLandmarks()
-							.withFaceDescriptor();
-						if (userDetection) {
-							user.descriptor = userDetection.descriptor;
-						}
-					}
-					if (user.descriptor) {
-						const distance = faceapi.euclideanDistance(
-							detection.descriptor,
-							user.descriptor
-						);
-						if (distance < minDistance) {
-							minDistance = distance;
-							bestMatch = user;
-						}
-					}
-				}
-
-				// If distance is less than a threshold (e.g., 0.6), consider it a match.
-				if (minDistance < 0.6) {
-					results.push({
-						detection,
-						match: bestMatch,
-						recognized: true,
-					});
-				} else {
-					results.push({ detection, recognized: false });
-				}
-			}
-
-			// Draw bounding boxes on the canvas.
-			const ctx = canvas.getContext("2d");
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
-			resizedDetections.forEach((result, index) => {
-				const box = result.detection.box;
-				const res = results[index];
-				// Set color based on recognition result.
-				const boxColor = res.recognized ? "green" : "red";
-				new faceapi.draw.DrawBox(box, { label: "", boxColor }).draw(
-					canvas
-				);
-				if (res.recognized && res.match && res.match.name) {
-					ctx.font = "16px Arial";
-					ctx.fillStyle = "white";
-					ctx.fillText(res.match.name, box.x, box.y - 10);
-				}
-			});
-
-			setRecognizedResults(results);
-		} catch (error) {
-			console.error("Detection error:", error);
-			toast.error("Detection error.");
+		if (detections.length === 0) {
+			toast.error("No face detected in the captured image.");
+			return;
 		}
+
+		const resizedDetections = faceapi.resizeResults(detections, {
+			width: img.width,
+			height: img.height,
+		});
+
+		resizedDetections.forEach((detection) => {
+			const { x, y, width, height } = detection.box;
+			ctx.strokeStyle = "green";
+			ctx.lineWidth = 2;
+			ctx.strokeRect(x, y, width, height);
+		});
 	};
 
 	useEffect(() => {
@@ -166,37 +93,8 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		}
 	}, [step, capturedImage]);
 
-	const handleConfirmAttendance = async () => {
-		const recognizedUsers = recognizedResults
-			.filter((r) => r.recognized && r.match)
-			.map((r) => r.match);
-
-		if (recognizedUsers.length === 0) {
-			toast.error("No recognized user found for attendance.");
-			return;
-		}
-
-		setIsSubmitting(true);
-		try {
-			for (let user of recognizedUsers) {
-				await markAttendance(user._id);
-			}
-			toast.success("Attendance marked for recognized user(s)!");
-			onMarkAttendance(); // Optionally refresh attendance records
-			setRecognizedResults([]);
-			setCapturedImage(null);
-			setStep("capturing");
-		} catch (error) {
-			console.error("Error marking attendance:", error);
-			toast.error("Failed to mark attendance.");
-		} finally {
-			setIsSubmitting(false);
-		}
-	};
-
 	const handleRetake = () => {
 		setCapturedImage(null);
-		setRecognizedResults([]);
 		setStep("capturing");
 	};
 
@@ -213,18 +111,10 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 							</h2>
 							<CameraComponent ref={cameraRef} />
 							<button
-								type="button"
-								onClick={() => handleCapture()}
+								onClick={handleCapture}
 								className="mt-4 w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition duration-200"
 							>
 								Capture
-							</button>
-							<button
-								type="button"
-								onClick={onCancel}
-								className="mt-2 w-full bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition duration-200"
-							>
-								Cancel
 							</button>
 						</>
 					)}
@@ -234,48 +124,13 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 							<h2 className="text-xl font-semibold mb-4 text-gray-700">
 								Review Check-In Photo
 							</h2>
-							{capturedImage && (
-								<img
-									ref={imageRef}
-									src={capturedImage}
-									alt="Captured Check-In"
-									style={{ maxWidth: "100%" }}
-								/>
-							)}
-							<canvas
-								ref={canvasRef}
-								style={{
-									position: "absolute",
-									top: 0,
-									left: 0,
-									pointerEvents: "none",
-									width: "100%",
-									height: "100%",
-								}}
-							/>
-							<div className="flex justify-between mt-4">
-								<button
-									type="button"
-									onClick={handleRetake}
-									className="w-1/2 bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition duration-200 mr-2"
-								>
-									Retake
-								</button>
-								<button
-									type="button"
-									onClick={handleConfirmAttendance}
-									disabled={isSubmitting}
-									className={`w-1/2 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-200 ml-2 ${
-										isSubmitting
-											? "opacity-50 cursor-not-allowed"
-											: ""
-									}`}
-								>
-									{isSubmitting
-										? "Marking Attendance..."
-										: "Confirm Attendance"}
-								</button>
-							</div>
+							<canvas ref={canvasRef} className="w-full" />
+							<button
+								onClick={handleRetake}
+								className="mt-4 w-full bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition duration-200"
+							>
+								Retake
+							</button>
 						</>
 					)}
 				</>
