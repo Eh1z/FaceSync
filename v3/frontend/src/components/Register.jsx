@@ -103,10 +103,10 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 		ctx.drawImage(img, 0, 0);
 
 		// Detect a single face and compute its descriptor.
-		const detection = await faceapi
-			.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
-			.withFaceLandmarks()
-			.withFaceDescriptor();
+		const detection = await faceapi.detectSingleFace(
+			img,
+			new faceapi.TinyFaceDetectorOptions()
+		);
 
 		if (!detection) {
 			toast.error("No face detected, please retake the photo.");

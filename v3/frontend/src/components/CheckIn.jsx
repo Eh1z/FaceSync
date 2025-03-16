@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import * as tf from "@tensorflow/tfjs"; // Import TFJS
 import { getUsers, markAttendance } from "../api";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
@@ -9,20 +10,25 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const [users, setUsers] = useState([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [capturedImage, setCapturedImage] = useState(null);
-	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [step, setStep] = useState("capturing");
 
 	const cameraRef = useRef(null);
 	const canvasRef = useRef(null);
 
 	useEffect(() => {
-		const fetchUsersAndLoadModels = async () => {
+		const init = async () => {
 			try {
+				// Ensure TensorFlow.js is ready and set the backend
+				await tf.setBackend("webgl");
+				await tf.ready();
+
+				// Fetch users and load face-api models
 				const usersResponse = await getUsers();
 				setUsers(usersResponse.data);
 
 				await Promise.all([
 					faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
+					faceapi.nets.ssdMobilenetv1.loadFromUri("/models"),
 					faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
 					faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
 				]);
@@ -35,7 +41,7 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 			}
 		};
 
-		fetchUsersAndLoadModels();
+		init();
 	}, []);
 
 	const handleCapture = () => {
@@ -53,17 +59,19 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const processCapturedImage = async () => {
 		if (!capturedImage || !canvasRef.current) return;
 
+		// Create an Image element from the captured image data
 		const img = new Image();
 		img.src = capturedImage;
 		await new Promise((resolve) => (img.onload = resolve));
 
+		// Prepare canvas
 		const canvas = canvasRef.current;
 		const ctx = canvas.getContext("2d");
 		canvas.width = img.width;
 		canvas.height = img.height;
 		ctx.drawImage(img, 0, 0, img.width, img.height);
 
-		// Detect a single face with landmarks and descriptor
+		// Detect a single face with landmarks and compute its descriptor
 		const detection = await faceapi
 			.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
 			.withFaceLandmarks()
@@ -74,40 +82,47 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 			return;
 		}
 
-		// Draw bounding box
+		// Draw bounding box around the detected face
 		const { x, y, width, height } = detection.detection.box;
 		ctx.strokeStyle = "green";
 		ctx.lineWidth = 2;
 		ctx.strokeRect(x, y, width, height);
 
-		// Compare captured descriptor with stored descriptors from users
-		let bestMatch = null;
-		let minDistance = Infinity;
-		const threshold = 0.6; // Adjust as needed
-		users.forEach((user) => {
-			if (user.faceDescriptor && user.faceDescriptor.length) {
-				const distance = faceapi.euclideanDistance(
-					detection.descriptor,
-					user.faceDescriptor
-				);
-				if (distance < threshold && distance < minDistance) {
-					minDistance = distance;
-					bestMatch = user;
-				}
-			}
-		});
+		// Build labeled face descriptors from stored users (assumes each user has a faceDescriptor property)
+		const labeledFaceDescriptors = users
+			.filter((user) => user.faceDescriptor)
+			.map(
+				(user) =>
+					new faceapi.LabeledFaceDescriptors(user.name, [
+						new Float32Array(user.faceDescriptor),
+					])
+			);
 
-		// Write the match result above the bounding box
-		ctx.font = "16px Arial";
-		if (bestMatch) {
-			ctx.fillStyle = "green";
-			ctx.fillText(bestMatch.name, x, y - 10);
-			// Optionally, you can mark attendance automatically:
-			// onMarkAttendance(bestMatch._id);
-		} else {
-			ctx.fillStyle = "red";
-			ctx.fillText("Unknown", x, y - 10);
+		if (labeledFaceDescriptors.length === 0) {
+			toast.error(
+				"No stored face descriptors available for recognition."
+			);
+			return;
 		}
+
+		// Create a FaceMatcher with a threshold (0.6 is typical)
+		const faceMatcher = new faceapi.FaceMatcher(
+			labeledFaceDescriptors,
+			0.6
+		);
+
+		// Find the best match for the captured face descriptor
+		const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+
+		// Write the matching user name (or "unknown") above the bounding box
+		ctx.font = "16px Arial";
+		ctx.fillStyle = "green";
+		ctx.fillText(bestMatch.label, x, y - 10);
+
+		// Optionally, mark attendance automatically:
+		// if (bestMatch.label !== "unknown") {
+		//   onMarkAttendance(bestMatch.label);
+		// }
 	};
 
 	useEffect(() => {
