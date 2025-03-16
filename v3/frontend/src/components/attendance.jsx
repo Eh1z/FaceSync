@@ -49,19 +49,20 @@ const Attendance = () => {
 	};
 
 	const fetchAttendance = async () => {
-		if (selectedCourse && selectedDate) {
+		if (selectedCourse) {
 			try {
-				console.log("course code", selectedCourse);
-				const response = await getAttendance(
-					selectedCourse,
-					selectedDate
-				);
+				const response = await getAttendance(selectedCourse);
 				setAttendance(response.data);
+				console.log("attendance data", attendance);
 			} catch (err) {
 				toast.error("Failed to fetch attendance records.");
 			}
 		}
 	};
+
+	useEffect(() => {
+		fetchAttendance();
+	}, [selectedCourse, selectedDate]);
 
 	useEffect(() => {
 		fetchCourses();
@@ -126,58 +127,26 @@ const Attendance = () => {
 						: "Attendance List"}
 				</h2>
 
-				<div className="flex items-center gap-4 mb-4">
-					<select
-						className="border p-2 rounded-md"
-						onChange={(e) => setSelectedCourse(e.target.value)}
-					>
-						<option value="">Select Course</option>
-						{courses.map((course) => (
-							<option key={course._id} value={course.courseCode}>
-								{course.courseName}
-							</option>
-						))}
-					</select>
-
-					<input
-						type="date"
-						className="border p-2 rounded-md"
-						onChange={(e) => setSelectedDate(e.target.value)}
-					/>
-
-					<button
-						onClick={fetchAttendance}
-						className="bg-blue-500 text-white px-4 py-2 rounded-md"
-					>
-						Fetch Attendance
-					</button>
-				</div>
-
 				<div className="bg-white shadow rounded-lg p-4">
 					{attendance.length === 0 ? (
 						<p className="text-center text-gray-500">
 							No attendance records yet.
 						</p>
 					) : (
-						<table className="min-w-full leading-normal">
+						<table className="w-full leading-normal">
 							<thead>
-								<tr>
-									<th>User Name</th>
+								<tr className="w-full">
+									<th>Student</th>
 									<th>Mat. Number</th>
 									<th>Status</th>
 								</tr>
 							</thead>
 							<tbody>
-								{attendance.map((record) => (
+								{attendance[0].students.map((record) => (
 									<tr key={record._id}>
-										<td>
-											{record.student?.name || "Unknown"}
-										</td>
-										<td>
-											{record.student?.mat_num ||
-												"Unknown"}
-										</td>
-										<td>{record.status || "Absent"}</td>
+										<td>{record.student.name}</td>
+										<td>{record.student.mat_num}</td>
+										<td>{record.status}</td>
 									</tr>
 								))}
 							</tbody>
