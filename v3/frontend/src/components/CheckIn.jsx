@@ -61,30 +61,53 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		const ctx = canvas.getContext("2d");
 		canvas.width = img.width;
 		canvas.height = img.height;
-
 		ctx.drawImage(img, 0, 0, img.width, img.height);
 
-		const detections = await faceapi.detectAllFaces(
-			img,
-			new faceapi.TinyFaceDetectorOptions()
-		);
+		// Detect a single face with landmarks and descriptor
+		const detection = await faceapi
+			.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+			.withFaceLandmarks()
+			.withFaceDescriptor();
 
-		if (detections.length === 0) {
+		if (!detection) {
 			toast.error("No face detected in the captured image.");
 			return;
 		}
 
-		const resizedDetections = faceapi.resizeResults(detections, {
-			width: img.width,
-			height: img.height,
+		// Draw bounding box
+		const { x, y, width, height } = detection.detection.box;
+		ctx.strokeStyle = "green";
+		ctx.lineWidth = 2;
+		ctx.strokeRect(x, y, width, height);
+
+		// Compare captured descriptor with stored descriptors from users
+		let bestMatch = null;
+		let minDistance = Infinity;
+		const threshold = 0.6; // Adjust as needed
+		users.forEach((user) => {
+			if (user.faceDescriptor && user.faceDescriptor.length) {
+				const distance = faceapi.euclideanDistance(
+					detection.descriptor,
+					user.faceDescriptor
+				);
+				if (distance < threshold && distance < minDistance) {
+					minDistance = distance;
+					bestMatch = user;
+				}
+			}
 		});
 
-		resizedDetections.forEach((detection) => {
-			const { x, y, width, height } = detection.box;
-			ctx.strokeStyle = "green";
-			ctx.lineWidth = 2;
-			ctx.strokeRect(x, y, width, height);
-		});
+		// Write the match result above the bounding box
+		ctx.font = "16px Arial";
+		if (bestMatch) {
+			ctx.fillStyle = "green";
+			ctx.fillText(bestMatch.name, x, y - 10);
+			// Optionally, you can mark attendance automatically:
+			// onMarkAttendance(bestMatch._id);
+		} else {
+			ctx.fillStyle = "red";
+			ctx.fillText("Unknown", x, y - 10);
+		}
 	};
 
 	useEffect(() => {

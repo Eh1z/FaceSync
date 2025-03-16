@@ -52,6 +52,7 @@ const userSchema = new mongoose.Schema(
 		studentId: String,
 		userImage: String,
 		courses: [{ type: mongoose.Schema.Types.ObjectId, ref: "Course" }],
+		faceDescriptor: { type: [Number], default: [] }, // New field for face data
 	},
 	{ timestamps: true }
 );
@@ -113,8 +114,15 @@ app.get("/users", async (req, res) => {
 
 app.post("/users", async (req, res) => {
 	try {
-		const { name, email, studentId, mat_num, userImage, courses } =
-			req.body;
+		const {
+			name,
+			email,
+			studentId,
+			mat_num,
+			userImage,
+			courses,
+			faceDescriptor,
+		} = req.body;
 		const newUser = new User({
 			name,
 			email,
@@ -122,6 +130,7 @@ app.post("/users", async (req, res) => {
 			mat_num,
 			userImage,
 			courses,
+			faceDescriptor, // Save the face descriptor
 		});
 		await newUser.save();
 		res.status(201).json(newUser);
