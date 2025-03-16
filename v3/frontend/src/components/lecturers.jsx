@@ -1,6 +1,11 @@
-// src/components/Lecturers.jsx
 import React, { useState, useEffect } from "react";
-import { getLecturers, addLecturer, getCourses, updateLecturer } from "../api";
+import {
+	getLecturers,
+	addLecturer,
+	getCourses,
+	updateLecturer,
+	deleteLecturer,
+} from "../api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -126,10 +131,7 @@ const Lecturers = () => {
 			toast.success("Lecturer updated successfully!", {
 				containerId: "A",
 			});
-			setEditingLecturer(null);
-			setEditingName("");
-			setEditingEmail("");
-			setEditingSelectedCourses([]);
+			handleEditCancel();
 			fetchLecturers();
 		} catch (error) {
 			console.error(
@@ -137,6 +139,20 @@ const Lecturers = () => {
 				error.response ? error.response.data : error
 			);
 			toast.error("Failed to update lecturer.", { containerId: "A" });
+		}
+	};
+
+	// New: Delete Lecturer function
+	const handleDeleteLecturer = async (lecturerId) => {
+		try {
+			await deleteLecturer(lecturerId);
+			toast.success("Lecturer deleted successfully!", {
+				containerId: "A",
+			});
+			fetchLecturers();
+		} catch (error) {
+			toast.error("Failed to delete lecturer.", { containerId: "A" });
+			console.error("Lecturer deletion error:", error);
 		}
 	};
 
@@ -306,9 +322,19 @@ const Lecturers = () => {
 											onClick={() =>
 												handleEditClick(lecturer)
 											}
-											className="bg-yellow-500 text-white py-1 px-2 rounded hover:bg-yellow-600 transition duration-200"
+											className="bg-yellow-500 text-white py-1 px-2 rounded hover:bg-yellow-600 transition duration-200 mr-2"
 										>
 											Edit
+										</button>
+										<button
+											onClick={() =>
+												handleDeleteLecturer(
+													lecturer._id
+												)
+											}
+											className="bg-red-500 text-white py-1 px-2 rounded hover:bg-red-600 transition duration-200"
+										>
+											Delete
 										</button>
 									</td>
 								</tr>

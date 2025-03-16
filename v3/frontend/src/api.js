@@ -7,10 +7,7 @@ const API_URL = "https://face-sync-backend.vercel.app";
 // Fetch Functions
 export const getUsers = () => axios.get(`${API_URL}/users`);
 export const getAttendance = (name = "", date = "") =>
-	axios.get(`${API_URL}/attendance`, {
-		params: { name, date },
-	});
-
+	axios.get(`${API_URL}/attendance`, { params: { name, date } });
 export const getLecturers = () => axios.get(`${API_URL}/lecturers`);
 export const getCourses = (level = "", semester = "") =>
 	axios.get(`${API_URL}/courses?level=${level}&semester=${semester}`);
@@ -40,6 +37,9 @@ export const updateLecturer = (id, data) =>
 	axios.put(`${API_URL}/lecturers/${id}`, data);
 export const updateCourse = (id, updatedCourse) =>
 	axios.put(`${API_URL}/courses/${id}`, updatedCourse);
+// New Update Function for Users
+export const updateUser = (id, data) =>
+	axios.put(`${API_URL}/users/${id}`, data);
 
 // New Update Functions for Dashboard Data
 export const updateStudentAttendance = (studentId, attendanceData) =>

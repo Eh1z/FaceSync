@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getUsers, addUser } from "../api";
+import { getUsers, addUser, updateUser, deleteUser } from "../api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Papa from "papaparse";
@@ -11,12 +11,20 @@ const Students = () => {
 	// State variables
 	const [knownFaces, setKnownFaces] = useState([]);
 
+	// States for editing student
+	const [editingStudent, setEditingStudent] = useState(null);
+	const [editingName, setEditingName] = useState("");
+	const [editingEmail, setEditingEmail] = useState("");
+	const [editingStudentId, setEditingStudentId] = useState("");
+	const [editingMatNum, setEditingMatNum] = useState("");
+	const [editingUserImage, setEditingUserImage] = useState("");
+	const [editingCourses, setEditingCourses] = useState(""); // comma separated string
+
 	// Function to fetch all users
 	const fetchUsers = async () => {
 		try {
 			const response = await getUsers();
 			setKnownFaces(response.data);
-			console.log(response.data);
 		} catch (err) {
 			console.error("Error fetching users:", err);
 			toast.error("Failed to fetch users.");
@@ -107,6 +115,78 @@ const Students = () => {
 		doc.save("student_list.pdf");
 	};
 
+	// Handle Edit Click: populate modal fields with the selected student's data
+	const handleEditStudentClick = (student) => {
+		setEditingStudent(student);
+		setEditingName(student.name);
+		setEditingEmail(student.email);
+		setEditingStudentId(student.studentId);
+		setEditingMatNum(student.mat_num);
+		setEditingUserImage(student.userImage);
+		// Convert courses array to comma separated string (if available)
+		setEditingCourses(
+			student.courses && student.courses.length
+				? student.courses.join(", ")
+				: ""
+		);
+	};
+
+	// Handle Edit Cancel: reset editing state
+	const handleEditStudentCancel = () => {
+		setEditingStudent(null);
+		setEditingName("");
+		setEditingEmail("");
+		setEditingStudentId("");
+		setEditingMatNum("");
+		setEditingUserImage("");
+		setEditingCourses("");
+	};
+
+	// Handle Edit Submit: send updated student data to the backend
+	const handleEditStudentSubmit = async (e) => {
+		e.preventDefault();
+		if (
+			!editingName.trim() ||
+			!editingEmail.trim() ||
+			!editingStudentId.trim() ||
+			!editingMatNum.trim()
+		) {
+			toast.error("Name, Email, Student ID, and Mat Num are required.");
+			return;
+		}
+		const updatedStudent = {
+			name: editingName.trim(),
+			email: editingEmail.trim(),
+			studentId: editingStudentId.trim(),
+			mat_num: editingMatNum.trim(),
+			userImage: editingUserImage.trim(),
+			courses: editingCourses
+				? editingCourses.split(",").map((course) => course.trim())
+				: [],
+		};
+		try {
+			await updateUser(editingStudent._id, updatedStudent);
+			toast.success("Student updated successfully!");
+			handleEditStudentCancel();
+			fetchUsers();
+		} catch (error) {
+			console.error("Error updating student:", error);
+			toast.error("Failed to update student.");
+		}
+	};
+
+	// Handle Delete Student
+	const handleDeleteStudent = async (studentId) => {
+		try {
+			await deleteUser(studentId);
+			toast.success("Student deleted successfully!");
+			fetchUsers();
+		} catch (error) {
+			console.error("Error deleting student:", error);
+			toast.error("Failed to delete student.");
+		}
+	};
+
 	// Fetch user records on component mount
 	useEffect(() => {
 		fetchUsers();
@@ -161,11 +241,14 @@ const Students = () => {
 									<th className="px-4 py-2 border">
 										Mat Num
 									</th>
+									<th className="px-4 py-2 border">
+										Actions
+									</th>
 								</tr>
 							</thead>
 							<tbody>
 								{knownFaces.map((record, index) => (
-									<tr key={index}>
+									<tr key={record._id || index}>
 										<td className="px-4 py-2 border">
 											{record.name}
 										</td>
@@ -178,6 +261,28 @@ const Students = () => {
 										<td className="px-4 py-2 border">
 											{record.mat_num}
 										</td>
+										<td className="px-4 py-2 border">
+											<button
+												onClick={() =>
+													handleEditStudentClick(
+														record
+													)
+												}
+												className="bg-yellow-500 text-white py-1 px-2 rounded mr-2"
+											>
+												Edit
+											</button>
+											<button
+												onClick={() =>
+													handleDeleteStudent(
+														record._id
+													)
+												}
+												className="bg-red-500 text-white py-1 px-2 rounded"
+											>
+												Delete
+											</button>
+										</td>
 									</tr>
 								))}
 							</tbody>
@@ -185,6 +290,120 @@ const Students = () => {
 					)}
 				</div>
 			</section>
+
+			{/* Edit Modal */}
+			{editingStudent && (
+				<div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+					<div className="bg-white p-6 rounded shadow max-w-lg w-full">
+						<h3 className="text-xl font-semibold mb-4">
+							Edit Student
+						</h3>
+						<form
+							onSubmit={handleEditStudentSubmit}
+							className="space-y-4"
+						>
+							<div>
+								<label className="block text-gray-700 mb-1">
+									Name
+								</label>
+								<input
+									type="text"
+									value={editingName}
+									onChange={(e) =>
+										setEditingName(e.target.value)
+									}
+									className="w-full border p-2 rounded"
+									required
+								/>
+							</div>
+							<div>
+								<label className="block text-gray-700 mb-1">
+									Email
+								</label>
+								<input
+									type="email"
+									value={editingEmail}
+									onChange={(e) =>
+										setEditingEmail(e.target.value)
+									}
+									className="w-full border p-2 rounded"
+									required
+								/>
+							</div>
+							<div>
+								<label className="block text-gray-700 mb-1">
+									Student ID
+								</label>
+								<input
+									type="text"
+									value={editingStudentId}
+									onChange={(e) =>
+										setEditingStudentId(e.target.value)
+									}
+									className="w-full border p-2 rounded"
+									required
+								/>
+							</div>
+							<div>
+								<label className="block text-gray-700 mb-1">
+									Mat Num
+								</label>
+								<input
+									type="text"
+									value={editingMatNum}
+									onChange={(e) =>
+										setEditingMatNum(e.target.value)
+									}
+									className="w-full border p-2 rounded"
+									required
+								/>
+							</div>
+							<div>
+								<label className="block text-gray-700 mb-1">
+									User Image URL
+								</label>
+								<input
+									type="text"
+									value={editingUserImage}
+									onChange={(e) =>
+										setEditingUserImage(e.target.value)
+									}
+									className="w-full border p-2 rounded"
+								/>
+							</div>
+							<div>
+								<label className="block text-gray-700 mb-1">
+									Courses (comma separated)
+								</label>
+								<input
+									type="text"
+									value={editingCourses}
+									onChange={(e) =>
+										setEditingCourses(e.target.value)
+									}
+									className="w-full border p-2 rounded"
+								/>
+							</div>
+							<div className="flex justify-end space-x-4">
+								<button
+									type="button"
+									onClick={handleEditStudentCancel}
+									className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition duration-200"
+								>
+									Cancel
+								</button>
+								<button
+									type="submit"
+									className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition duration-200"
+								>
+									Save Changes
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			)}
+
 			<ToastContainer
 				position="top-right"
 				autoClose={5000}

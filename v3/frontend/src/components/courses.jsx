@@ -156,7 +156,7 @@ const Courses = () => {
 						</thead>
 						<tbody>
 							{courses.map((course) => (
-								<tr key={course._id}>
+								<tr key={course._id} className="h-10">
 									<td>{course.courseName}</td>
 									<td>{course.courseCode}</td>
 									<td>
