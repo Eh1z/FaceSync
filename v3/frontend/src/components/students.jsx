@@ -25,6 +25,7 @@ const Students = () => {
 		try {
 			const response = await getUsers();
 			setKnownFaces(response.data);
+			console.log(knownFaces);
 		} catch (err) {
 			console.error("Error fetching users:", err);
 			toast.error("Failed to fetch users.");

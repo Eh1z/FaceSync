@@ -11,6 +11,7 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [capturedImage, setCapturedImage] = useState(null);
 	const [step, setStep] = useState("capturing");
+	const [bestMatchLabel, setBestMatchLabel] = useState(null); // Store the best match label for attendance
 
 	const cameraRef = useRef(null);
 	const canvasRef = useRef(null);
@@ -77,8 +78,6 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 			.withFaceLandmarks(useTinyModel)
 			.withFaceDescriptor();
 
-		//console.log("detection log: ", detection.descriptor);
-
 		if (!detection) {
 			toast.error("No face detected in the captured image.");
 			return;
@@ -99,7 +98,6 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 						new Float32Array(user.faceData),
 					])
 			);
-		console.log("users to be used for matching: ", labeledFaceDescriptors);
 
 		if (labeledFaceDescriptors.length === 0) {
 			toast.error(
@@ -118,13 +116,10 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
 
 		// Write the matching user name (or "unknown") above the bounding box
+		setBestMatchLabel(bestMatch.label); // Set the label for the matched user
 		ctx.font = "32px Arial";
 		ctx.fillStyle = "lime";
 		ctx.fillText(bestMatch.label, x, y - 10);
-
-		// Optionally, mark attendance automatically:
-		// if (bestMatch.label !== "unknown") {
-		//   onMarkAtten
 	};
 
 	useEffect(() => {
@@ -136,6 +131,16 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const handleRetake = () => {
 		setCapturedImage(null);
 		setStep("capturing");
+	};
+
+	const handleConfirm = () => {
+		if (bestMatchLabel !== "unknown") {
+			// Mark attendance if a valid match is found
+			onMarkAttendance(bestMatchLabel); // You can pass the bestMatchLabel to mark the attendance
+			toast.success(`${bestMatchLabel} marked as present`);
+		} else {
+			toast.error("No matching user found.");
+		}
 	};
 
 	return (
@@ -170,6 +175,12 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 								className="mt-4 w-full bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition duration-200"
 							>
 								Retake
+							</button>
+							<button
+								onClick={handleConfirm}
+								className="mt-4 w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-200"
+							>
+								Confirm and Mark Attendance
 							</button>
 						</>
 					)}

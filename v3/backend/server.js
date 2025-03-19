@@ -58,11 +58,11 @@ const userSchema = new mongoose.Schema(
 );
 
 const attendanceSchema = new mongoose.Schema({
-	course: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
+	course: { type: String },
 	name: { type: String },
 	students: [
 		{
-			student: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+			student: { type: String },
 			status: {
 				type: String,
 				enum: ["Present", "Absent"],
@@ -188,11 +188,11 @@ app.post("/attendance", async (req, res) => {
 		}
 
 		// Find all students enrolled in this course
-		const students = await User.find({ courses: course._id });
+		const students = await User.find({ courses: course.name });
 
 		// Prepare the student list with default status 'Absent'
 		const studentList = students.map((student) => ({
-			student: student._id,
+			student: student.name,
 			status: "Absent",
 		}));
 
@@ -204,6 +204,7 @@ app.post("/attendance", async (req, res) => {
 		});
 
 		// 5Save the attendance
+		console.log(newAttendance);
 		await newAttendance.save();
 
 		res.status(201).json(newAttendance);
@@ -215,36 +216,29 @@ app.post("/attendance", async (req, res) => {
 
 app.get("/attendance", async (req, res) => {
 	try {
-		const { name, date } = req.query;
-
+		const { name } = req.query; // Get course name from query parameters
 		let filter = {};
 
 		// Filter by course name
 		if (name) filter.course = name;
 
-		// Filter by exact date (ignores time)
-		if (date) {
-			const startOfDay = new Date(date);
-			startOfDay.setHours(0, 0, 0, 0);
-			const endOfDay = new Date(date);
-			endOfDay.setHours(23, 59, 59, 999);
-			filter.createdAt = { $gte: startOfDay, $lte: endOfDay };
-		}
-
-		// Fetch attendance records
-		const records = await Attendance.find({ name: name })
+		// Fetch the most recent attendance record for the given course (if specified)
+		const records = await Attendance.find(filter) // Filter by course name
 			.populate({
 				path: "students.student", // This deeply populates the student field
 				model: "User", // Your student model
 			})
 			.populate("course")
-			.lean()
-			.sort({ createdAt: "desc" })
-			.limit(name || date ? undefined : 1);
+			.lean() // Convert to plain JavaScript object
+			.sort({ createdAt: "desc" }) // Sort by creation date in descending order
+			.limit(1); // Limit to only 1 record (the most recent)
+
+		// Log and return the records
 		console.log(records);
 		res.json(records);
 	} catch (error) {
 		res.status(500).json({ message: "Failed to fetch attendance records" });
+		console.log(error);
 	}
 });
 

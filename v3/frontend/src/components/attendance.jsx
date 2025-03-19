@@ -51,18 +51,19 @@ const Attendance = () => {
 	const fetchAttendance = async () => {
 		if (selectedCourse) {
 			try {
-				const response = await getAttendance(selectedCourse);
+				const response = await getAttendance();
 				setAttendance(response.data);
 				console.log("attendance data", attendance);
 			} catch (err) {
 				toast.error("Failed to fetch attendance records.");
+				console.log(err);
 			}
 		}
 	};
 
 	useEffect(() => {
 		fetchAttendance();
-	}, [selectedCourse, selectedDate]);
+	}, [selectedCourse]);
 
 	useEffect(() => {
 		fetchCourses();
@@ -144,8 +145,8 @@ const Attendance = () => {
 							<tbody>
 								{attendance[0].students.map((record) => (
 									<tr key={record._id}>
-										<td>{record.student.name}</td>
-										<td>{record.student.mat_num}</td>
+										<td>{record.student?.name}</td>
+										<td>{record.student?.mat_num}</td>
 										<td>{record.status}</td>
 									</tr>
 								))}
