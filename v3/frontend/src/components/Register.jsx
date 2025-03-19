@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import CameraComponent from "./Camera";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
-import * as faceapi from "face-api.js";
+import * as tf from "@tensorflow/tfjs";
+import * as faceapi from "@vladmandic/face-api";
 
 const Register = ({ onAddUser, onCancel, courses }) => {
 	const [step, setStep] = useState("form");
@@ -12,7 +13,7 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 	const [mat_num, setMat_num] = useState("");
 	const [selectedCourses, setSelectedCourses] = useState([]); // State to store selected courses
 	const [capturedImage, setCapturedImage] = useState(null);
-	const [faceDescriptor, setFaceDescriptor] = useState(null);
+	const [faceData, setFaceData] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const cameraRef = useRef(null);
@@ -24,10 +25,12 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 			try {
 				await Promise.all([
 					faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
+					faceapi.nets.ssdMobilenetv1.loadFromUri("/models"),
 					faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
 					faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
+					faceapi.nets.faceLandmark68TinyNet.loadFromUri("/models"),
 				]);
-				console.log("FaceAPI models loaded.");
+				console.log("FaceAPI models loaded. ");
 			} catch (error) {
 				toast.error("Failed to load face detection models.");
 				console.error(error);
@@ -83,7 +86,7 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 
 	const handleRetake = () => {
 		setCapturedImage(null);
-		setFaceDescriptor(null);
+		setFaceData(null);
 		setStep("capturing");
 		if (cameraRef.current) cameraRef.current.startCamera();
 	};
@@ -103,10 +106,13 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 		ctx.drawImage(img, 0, 0);
 
 		// Detect a single face and compute its descriptor.
-		const detection = await faceapi.detectSingleFace(
-			img,
-			new faceapi.TinyFaceDetectorOptions()
-		);
+		const useTinyModel = true;
+		const detection = await faceapi
+			.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+			.withFaceLandmarks(useTinyModel);
+
+		console.log("logiing results for testing: ", detection.landmarks);
+		setFaceData(detection.landmarks._positions);
 
 		if (!detection) {
 			toast.error("No face detected, please retake the photo.");
@@ -116,11 +122,8 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 		// Draw bounding box
 		const { x, y, width, height } = detection.detection.box;
 		ctx.strokeStyle = "green";
-		ctx.lineWidth = 2;
+		ctx.lineWidth = 3;
 		ctx.strokeRect(x, y, width, height);
-
-		// Store the face descriptor (an array of numbers)
-		setFaceDescriptor(detection.descriptor);
 	};
 
 	// When preview step is reached, process the captured image.
@@ -131,7 +134,7 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 	}, [step, capturedImage]);
 
 	const handleConfirm = async () => {
-		if (!capturedImage || !faceDescriptor) {
+		if (!capturedImage || !faceData) {
 			toast.error("Face data not available. Please retake the photo.");
 			return;
 		}
@@ -144,7 +147,7 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 			studentId: studentId.trim(),
 			userImage: capturedImage, // Captured face image
 			courses: selectedCourses, // Selected course IDs
-			faceDescriptor, // New: face descriptor array
+			faceData: faceData,
 		};
 
 		try {
@@ -158,7 +161,7 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 			setMat_num("");
 			setSelectedCourses([]);
 			setCapturedImage(null);
-			setFaceDescriptor(null);
+			setFaceData(null);
 		} catch (error) {
 			toast.error("Failed to register user.");
 			console.error(error);

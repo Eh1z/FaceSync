@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import * as tf from "@tensorflow/tfjs"; // Import TFJS
 import { getUsers, markAttendance } from "../api";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
+import * as tf from "@tensorflow/tfjs";
 import * as faceapi from "face-api.js";
 import CameraComponent from "./Camera";
 

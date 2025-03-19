@@ -12,13 +12,13 @@
   "dependencies": {
     "@clerk/clerk-react": "^5.24.2",
     "@clerk/react-router": "^0.1.7",
-
     "@tensorflow/tfjs": "^4.22.0",
+    "@vladmandic/face-api": "^1.7.15",
     "axios": "^1.7.9",
     "canvas": "^3.1.0",
     "chart.js": "^4.4.7",
-    "face-api.js": "^0.20.0",
-    "jspdf": "^1.4.0",
+    "face-api.js": "^0.20.1",
+    "jspdf": "^3.0.1",
     "jspdf-autotable": "^3.0.4",
     "papaparse": "^5.5.2",
     "react": "^18.3.1",
