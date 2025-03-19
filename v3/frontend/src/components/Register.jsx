@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import CameraComponent from "./Camera";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
-import * as tf from "@tensorflow/tfjs";
+
 import * as faceapi from "@vladmandic/face-api";
 
 const Register = ({ onAddUser, onCancel, courses }) => {
@@ -111,7 +111,7 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 			.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
 			.withFaceLandmarks(useTinyModel);
 
-		console.log("logiing results for testing: ", detection.landmarks);
+		//console.log("logiing results for testing: ", detection.landmarks);
 		setFaceData(detection.landmarks._positions);
 
 		if (!detection) {
@@ -122,7 +122,7 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 		// Draw bounding box
 		const { x, y, width, height } = detection.detection.box;
 		ctx.strokeStyle = "green";
-		ctx.lineWidth = 3;
+		ctx.lineWidth = 4;
 		ctx.strokeRect(x, y, width, height);
 	};
 

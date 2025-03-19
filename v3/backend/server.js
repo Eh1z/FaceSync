@@ -293,15 +293,16 @@ app.get("/courses", async (req, res) => {
 	const { level, semester } = req.query; // Get from query parameters
 
 	try {
-		// Filter based on level and semester
+		// Filter based on level and semester, with case-insensitive matching
 		const filter = {};
 
-		if (level) filter.level = level;
-		if (semester) filter.semester = semester;
-		console.log("logging filters: ", filter);
+		if (level) filter.level = { $regex: new RegExp(level, "i") }; // Case-insensitive regex for level
+		if (semester) filter.semester = { $regex: new RegExp(semester, "i") }; // Case-insensitive regex for semester
 
+		// Fetch courses based on the filter, populated with lecturer data
 		const courses = await Course.find(filter).populate("lecturer");
-		console.log("logging results: ", courses);
+
+		// Send the filtered courses as the response
 		res.json(courses);
 	} catch (error) {
 		res.status(500).json({ message: "Failed to fetch courses" });

@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { getUsers, markAttendance } from "../api";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
-import * as tf from "@tensorflow/tfjs";
-import * as faceapi from "face-api.js";
+
+import * as faceapi from "@vladmandic/face-api";
 import CameraComponent from "./Camera";
 
 const CheckIn = ({ onMarkAttendance, onCancel }) => {
@@ -15,22 +15,20 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 	const cameraRef = useRef(null);
 	const canvasRef = useRef(null);
 
+	// Load face-api models and users on mount
 	useEffect(() => {
 		const init = async () => {
 			try {
-				// Ensure TensorFlow.js is ready and set the backend
-				await tf.setBackend("webgl");
-				await tf.ready();
-
 				// Fetch users and load face-api models
 				const usersResponse = await getUsers();
 				setUsers(usersResponse.data);
+				//console.log("fetched users: ", users);
 
 				await Promise.all([
 					faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
-					faceapi.nets.ssdMobilenetv1.loadFromUri("/models"),
 					faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
 					faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
+					faceapi.nets.faceLandmark68TinyNet.loadFromUri("/models"),
 				]);
 				console.log("Models loaded");
 			} catch (error) {
@@ -50,6 +48,7 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 			if (imageData) {
 				setCapturedImage(imageData);
 				setStep("preview");
+				cameraRef.current.stopCamera();
 			} else {
 				toast.error("Failed to capture image. Please try again.");
 			}
@@ -71,11 +70,13 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		canvas.height = img.height;
 		ctx.drawImage(img, 0, 0, img.width, img.height);
 
-		// Detect a single face with landmarks and compute its descriptor
+		// Detect a single face with landmarks
+		const useTinyModel = true;
 		const detection = await faceapi
 			.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
-			.withFaceLandmarks()
-			.withFaceDescriptor();
+			.withFaceLandmarks(useTinyModel);
+
+		console.log("detection log: ", detection);
 
 		if (!detection) {
 			toast.error("No face detected in the captured image.");
@@ -85,19 +86,19 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		// Draw bounding box around the detected face
 		const { x, y, width, height } = detection.detection.box;
 		ctx.strokeStyle = "green";
-		ctx.lineWidth = 2;
+		ctx.lineWidth = 4;
 		ctx.strokeRect(x, y, width, height);
 
-		// Build labeled face descriptors from stored users (assumes each user has a faceDescriptor property)
+		// Build labeled face data from stored users (assumes each user has a faceDescriptor property)
 		const labeledFaceDescriptors = users
-			.filter((user) => user.faceDescriptor)
+			.filter((user) => user.faceData)
 			.map(
 				(user) =>
 					new faceapi.LabeledFaceDescriptors(user.name, [
-						new Float32Array(user.faceDescriptor),
+						new Float32Array(user.faceData),
 					])
 			);
-
+		console.log("users to be used for matching: ", labeledFaceDescriptors);
 		if (labeledFaceDescriptors.length === 0) {
 			toast.error(
 				"No stored face descriptors available for recognition."
@@ -112,7 +113,9 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		);
 
 		// Find the best match for the captured face descriptor
-		const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+		const bestMatch = faceMatcher.findBestMatch(
+			detection.landmarks._positions
+		);
 
 		// Write the matching user name (or "unknown") above the bounding box
 		ctx.font = "16px Arial";
