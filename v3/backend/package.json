@@ -7,7 +7,7 @@
     "dev": "nodemon server.js",
     "start": "node server.js"
   },
-  "author": "Godsent Ehiz",
+
   "license": "ISC",
   "description": "",
   "dependencies": {

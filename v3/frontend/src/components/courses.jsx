@@ -63,7 +63,7 @@ const Courses = () => {
 			courseCode: courseCode.trim(),
 			level: level.trim(),
 			semester: semester.trim(),
-			lecturer: lecturer || null,
+			lecturer: lecturer || null, // Optional: pass lecturer ID if selected
 		};
 
 		try {
@@ -74,13 +74,14 @@ const Courses = () => {
 			setLevel("");
 			setSemester("");
 			setLecturer("");
-			fetchCourses();
+			fetchCourses(); // Reload the list of courses after adding
 		} catch (error) {
 			toast.error("Failed to create course.");
 			console.error("Course creation error:", error);
 		}
 	};
 
+	// Edit Course Functions
 	const handleEditClick = (course) => {
 		setEditingCourse(course);
 		setEditingCourseName(course.courseName);
@@ -117,7 +118,12 @@ const Courses = () => {
 		try {
 			await updateCourse(editingCourse._id, updatedCourse);
 			toast.success("Course updated successfully!");
-			handleEditCancel();
+			setEditingCourse(null);
+			setEditingCourseName("");
+			setEditingCourseCode("");
+			setEditingLevel("");
+			setEditingSemester("");
+			setEditingLecturer("");
 			fetchCourses();
 		} catch (error) {
 			toast.error("Failed to update course.");
@@ -138,6 +144,107 @@ const Courses = () => {
 
 	return (
 		<div className="w-full grid grid-cols-1 gap-16">
+			{/* Form to create a new course */}
+			<div className="w-full max-w-[800px] mx-auto p-6 bg-white shadow rounded">
+				<h2 className="text-2xl font-bold mb-4">Create Course</h2>
+				<form onSubmit={handleSubmit} className="space-y-4">
+					<div>
+						<label
+							htmlFor="courseName"
+							className="block text-gray-700"
+						>
+							Course Name
+						</label>
+						<input
+							type="text"
+							id="courseName"
+							value={courseName}
+							onChange={(e) => setCourseName(e.target.value)}
+							className="w-full border p-2 rounded"
+							placeholder="Enter course name"
+							required
+						/>
+					</div>
+					<div>
+						<label
+							htmlFor="courseCode"
+							className="block text-gray-700"
+						>
+							Course Code
+						</label>
+						<input
+							type="text"
+							id="courseCode"
+							value={courseCode}
+							onChange={(e) => setCourseCode(e.target.value)}
+							className="w-full border p-2 rounded"
+							placeholder="Enter course code"
+							required
+						/>
+					</div>
+					<div>
+						<label htmlFor="level" className="block text-gray-700">
+							Course Level
+						</label>
+						<input
+							type="text"
+							id="level"
+							value={level}
+							onChange={(e) => setLevel(e.target.value)}
+							className="w-full border p-2 rounded"
+							placeholder="Enter course Level"
+							required
+						/>
+					</div>
+					<div>
+						<label
+							htmlFor="semester"
+							className="block text-gray-700"
+						>
+							Course Semester
+						</label>
+						<input
+							type="text"
+							id="semester"
+							value={semester}
+							onChange={(e) => setSemester(e.target.value)}
+							className="w-full border p-2 rounded"
+							placeholder="Enter course code"
+							required
+						/>
+					</div>
+
+					<div>
+						<label
+							htmlFor="lecturer"
+							className="block text-gray-700"
+						>
+							Lecturer (Optional)
+						</label>
+						<select
+							id="lecturer"
+							value={lecturer}
+							onChange={(e) => setLecturer(e.target.value)}
+							className="w-full border p-2 rounded"
+						>
+							<option value="">Select Lecturer</option>
+							{lecturers.map((lect) => (
+								<option key={lect._id} value={lect._id}>
+									{lect.name} ({lect.email})
+								</option>
+							))}
+						</select>
+					</div>
+					<button
+						type="submit"
+						className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-200"
+					>
+						Create Course
+					</button>
+				</form>
+			</div>
+
+			{/* Existing Courses List */}
 			<div className="w-full mx-auto p-6 bg-white shadow rounded">
 				<h3 className="text-xl font-semibold mt-8 mb-4">
 					Existing Courses
@@ -148,28 +255,40 @@ const Courses = () => {
 					<table className="min-w-full divide-y divide-gray-200 mt-4">
 						<thead>
 							<tr>
-								<th>Course Name</th>
-								<th>Course Code</th>
-								<th>Lecturer</th>
-								<th>Actions</th>
+								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Course Name
+								</th>
+								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Course Code
+								</th>
+								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Lecturer
+								</th>
+								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+									Actions
+								</th>
 							</tr>
 						</thead>
-						<tbody>
+						<tbody className="bg-white divide-y divide-gray-200">
 							{courses.map((course) => (
-								<tr key={course._id} className="h-10">
-									<td>{course.courseName}</td>
-									<td>{course.courseCode}</td>
-									<td>
+								<tr key={course._id}>
+									<td className="px-6 py-4 whitespace-nowrap">
+										{course.courseName}
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
+										{course.courseCode}
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
 										{course.lecturer
-											? `${course.lecturer.name}`
+											? `${course.lecturer.name} (${course.lecturer.email})`
 											: "No lecturer assigned"}
 									</td>
-									<td>
+									<td className="px-6 py-4 whitespace-nowrap">
 										<button
 											onClick={() =>
 												handleEditClick(course)
 											}
-											className="bg-yellow-500 text-white py-1 px-2 rounded mr-2"
+											className="bg-yellow-500 text-white py-1 px-2 rounded hover:bg-yellow-600 transition duration-200 mr-1"
 										>
 											Edit
 										</button>
@@ -177,7 +296,7 @@ const Courses = () => {
 											onClick={() =>
 												handleDeleteCourse(course._id)
 											}
-											className="bg-red-500 text-white py-1 px-2 rounded"
+											className="bg-red-500 text-white py-1 px-2 rounded ml-1"
 										>
 											Delete
 										</button>
@@ -188,6 +307,98 @@ const Courses = () => {
 					</table>
 				)}
 			</div>
+
+			{/* Edit Course Modal */}
+			{editingCourse && (
+				<div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+					<div className="bg-white p-6 rounded shadow max-w-[800px] w-full">
+						<h3 className="text-xl font-semibold mb-4">
+							Edit Course
+						</h3>
+						<form onSubmit={handleEditSubmit} className="space-y-4">
+							<div>
+								<label
+									htmlFor="editingCourseName"
+									className="block text-gray-700 mb-1"
+								>
+									Course Name
+								</label>
+								<input
+									id="editingCourseName"
+									type="text"
+									placeholder="Enter course name"
+									value={editingCourseName}
+									onChange={(e) =>
+										setEditingCourseName(e.target.value)
+									}
+									className="w-full border p-2 rounded"
+									required
+								/>
+							</div>
+							<div>
+								<label
+									htmlFor="editingCourseCode"
+									className="block text-gray-700 mb-1"
+								>
+									Course Code
+								</label>
+								<input
+									id="editingCourseCode"
+									type="text"
+									placeholder="Enter course code"
+									value={editingCourseCode}
+									onChange={(e) =>
+										setEditingCourseCode(e.target.value)
+									}
+									className="w-full border p-2 rounded"
+									required
+								/>
+							</div>
+
+							<div>
+								<label
+									htmlFor="editingLecturer"
+									className="block text-gray-700 mb-1"
+								>
+									Lecturer
+								</label>
+								<select
+									id="editingLecturer"
+									value={editingLecturer}
+									onChange={(e) =>
+										setEditingLecturer(e.target.value)
+									}
+									className="w-full border p-2 rounded"
+								>
+									<option value="">Select Lecturer</option>
+									{lecturers.map((lect) => (
+										<option key={lect._id} value={lect._id}>
+											{lect.name} ({lect.email})
+										</option>
+									))}
+								</select>
+							</div>
+
+							<div className="flex space-x-4">
+								<button
+									type="button"
+									onClick={handleEditCancel}
+									className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition duration-200"
+								>
+									Cancel
+								</button>
+								<button
+									type="submit"
+									className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition duration-200"
+								>
+									Save Changes
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			)}
+
 			<ToastContainer
 				position="top-right"
 				autoClose={5000}
