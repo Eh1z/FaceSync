@@ -58,7 +58,7 @@ const userSchema = new mongoose.Schema(
 );
 
 const attendanceSchema = new mongoose.Schema({
-	course: { type: String },
+	course: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
 	name: { type: String },
 	students: [
 		{
@@ -188,11 +188,12 @@ app.post("/attendance", async (req, res) => {
 		}
 
 		// Find all students enrolled in this course
-		const students = await User.find({ courses: course.name });
+		const students = await User.find({ courses: course._id });
 
 		// Prepare the student list with default status 'Absent'
+
 		const studentList = students.map((student) => ({
-			student: student.name,
+			student: student._id,
 			status: "Absent",
 		}));
 
