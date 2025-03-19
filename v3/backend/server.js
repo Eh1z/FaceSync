@@ -222,6 +222,7 @@ app.get("/attendance", async (req, res) => {
 
 		// Filter by course name
 		if (name) filter.course = name;
+		console.log(name);
 
 		// Fetch the most recent attendance record for the given course (if specified)
 		const records = await Attendance.find(filter) // Filter by course name
@@ -235,7 +236,7 @@ app.get("/attendance", async (req, res) => {
 			.limit(1); // Limit to only 1 record (the most recent)
 
 		// Log and return the records
-		console.log(records);
+
 		res.json(records);
 	} catch (error) {
 		res.status(500).json({ message: "Failed to fetch attendance records" });
@@ -245,7 +246,7 @@ app.get("/attendance", async (req, res) => {
 
 app.put("/attendance", async (req, res) => {
 	const { studentId, courseCode } = req.body;
-	//console.log(studentStatus, courseCode);
+	console.log(studentId, courseCode);
 
 	try {
 		// Find the most recent attendance record for the given courseCode

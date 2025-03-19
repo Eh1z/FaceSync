@@ -7,7 +7,7 @@ const API_URL = "http://localhost:5000";
 // Fetch Functions
 export const getUsers = () => axios.get(`${API_URL}/users`);
 export const getAttendance = (name = "") =>
-	axios.get(`${API_URL}/attendance`, { params: { name } });
+	axios.get(`${API_URL}/attendance`, { name });
 export const getLecturers = () => axios.get(`${API_URL}/lecturers`);
 export const getCourses = (level = "", semester = "") =>
 	axios.get(`${API_URL}/courses?level=${level}&semester=${semester}`);

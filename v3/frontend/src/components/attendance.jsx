@@ -127,8 +127,8 @@ const Attendance = () => {
 				</div>
 				<CheckIn
 					onMarkAttendance={fetchAttendance}
-					setStudentStatus={setStudentId}
-					studentStatus={studentId}
+					setStudentId={setStudentId}
+					studentId={studentId}
 				/>
 			</div>
 			<section className="w-full">
