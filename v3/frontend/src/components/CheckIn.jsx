@@ -22,7 +22,7 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 				// Fetch users and load face-api models
 				const usersResponse = await getUsers();
 				setUsers(usersResponse.data);
-				//console.log("fetched users: ", users);
+				console.log("fetched users: ", users);
 
 				await Promise.all([
 					faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
@@ -74,9 +74,10 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 		const useTinyModel = true;
 		const detection = await faceapi
 			.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
-			.withFaceLandmarks(useTinyModel);
+			.withFaceLandmarks(useTinyModel)
+			.withFaceDescriptor();
 
-		console.log("detection log: ", detection);
+		//console.log("detection log: ", detection.descriptor);
 
 		if (!detection) {
 			toast.error("No face detected in the captured image.");
@@ -85,8 +86,8 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 
 		// Draw bounding box around the detected face
 		const { x, y, width, height } = detection.detection.box;
-		ctx.strokeStyle = "green";
-		ctx.lineWidth = 4;
+		ctx.strokeStyle = "lime";
+		ctx.lineWidth = 2;
 		ctx.strokeRect(x, y, width, height);
 
 		// Build labeled face data from stored users (assumes each user has a faceDescriptor property)
@@ -99,6 +100,7 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 					])
 			);
 		console.log("users to be used for matching: ", labeledFaceDescriptors);
+
 		if (labeledFaceDescriptors.length === 0) {
 			toast.error(
 				"No stored face descriptors available for recognition."
@@ -112,20 +114,17 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 			0.6
 		);
 
-		// Find the best match for the captured face descriptor
-		const bestMatch = faceMatcher.findBestMatch(
-			detection.landmarks._positions
-		);
+		// Use the face descriptor from the captured image for matching
+		const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
 
 		// Write the matching user name (or "unknown") above the bounding box
-		ctx.font = "16px Arial";
-		ctx.fillStyle = "green";
+		ctx.font = "32px Arial";
+		ctx.fillStyle = "lime";
 		ctx.fillText(bestMatch.label, x, y - 10);
 
 		// Optionally, mark attendance automatically:
 		// if (bestMatch.label !== "unknown") {
-		//   onMarkAttendance(bestMatch.label);
-		// }
+		//   onMarkAtten
 	};
 
 	useEffect(() => {

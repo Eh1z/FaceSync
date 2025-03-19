@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
 
 const mongoURI =
 	"mongodb+srv://admin:website1122@freelance.kc2fzo9.mongodb.net/Attendance_DB?retryWrites=true&w=majority";
@@ -52,7 +52,7 @@ const userSchema = new mongoose.Schema(
 		studentId: String,
 		userImage: String,
 		courses: [{ type: mongoose.Schema.Types.ObjectId, ref: "Course" }],
-		faceData: { type: Array, default: [] },
+		faceData: { type: [Number], default: [] },
 	},
 	{ timestamps: true }
 );
@@ -123,7 +123,9 @@ app.post("/users", async (req, res) => {
 			courses,
 			faceData,
 		} = req.body;
-		console.log("checking if face data is stored properly: ", faceData);
+		console.log(faceData);
+
+		// Create a new user with the data, including the converted faceData
 		const newUser = new User({
 			name,
 			email,
@@ -133,10 +135,15 @@ app.post("/users", async (req, res) => {
 			courses,
 			faceData,
 		});
+
+		// Save the new user to the database
 		await newUser.save();
+
+		// Respond with the newly created user
 		res.status(201).json(newUser);
 	} catch (error) {
 		res.status(500).json({ message: "Failed to create user" });
+		console.error(error);
 	}
 });
 

@@ -109,10 +109,12 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 		const useTinyModel = true;
 		const detection = await faceapi
 			.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
-			.withFaceLandmarks(useTinyModel);
+			.withFaceLandmarks(useTinyModel)
+			.withFaceDescriptor();
 
 		//console.log("logiing results for testing: ", detection.landmarks);
-		setFaceData(detection.landmarks._positions);
+		const faceDescriptor = Array.from(detection.descriptor);
+		setFaceData(faceDescriptor);
 
 		if (!detection) {
 			toast.error("No face detected, please retake the photo.");
@@ -121,8 +123,8 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 
 		// Draw bounding box
 		const { x, y, width, height } = detection.detection.box;
-		ctx.strokeStyle = "green";
-		ctx.lineWidth = 4;
+		ctx.strokeStyle = "lime";
+		ctx.lineWidth = 2;
 		ctx.strokeRect(x, y, width, height);
 	};
 
@@ -134,6 +136,7 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 	}, [step, capturedImage]);
 
 	const handleConfirm = async () => {
+		console.log(faceData);
 		if (!capturedImage || !faceData) {
 			toast.error("Face data not available. Please retake the photo.");
 			return;
