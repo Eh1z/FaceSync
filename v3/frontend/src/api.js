@@ -42,8 +42,8 @@ export const updateUser = (id, data) =>
 	axios.put(`${API_URL}/users/${id}`, data);
 
 // New Update Functions for Dashboard Data
-export const updateStudentAttendance = (studentId, attendanceData) =>
-	axios.put(`${API_URL}/attendance/${studentId}`, attendanceData);
+export const updateStudentAttendance = (studentId, courseCode) =>
+	axios.put(`${API_URL}/attendance`, { studentId, courseCode });
 
 // Delete Functions
 export const deleteUser = (id) => axios.delete(`${API_URL}/users/${id}`);

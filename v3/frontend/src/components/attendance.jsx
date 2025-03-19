@@ -6,6 +6,7 @@ import {
 	getUsers,
 	getCourses,
 	createAttendanceList,
+	updateStudentAttendance,
 } from "../api";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -19,6 +20,7 @@ const Attendance = () => {
 	const [courses, setCourses] = useState([]);
 	const [selectedCourse, setSelectedCourse] = useState(null);
 	const [attendance, setAttendance] = useState([]);
+	const [studentId, setStudentId] = useState(null);
 
 	const fetchCourses = async () => {
 		if (selectedLevel && selectedSemester) {
@@ -64,6 +66,10 @@ const Attendance = () => {
 	useEffect(() => {
 		fetchAttendance();
 	}, [selectedCourse]);
+
+	useEffect(() => {
+		updateStudentAttendance(studentId, selectedCourse);
+	}, [studentId, selectedCourse]);
 
 	useEffect(() => {
 		fetchCourses();
@@ -119,7 +125,11 @@ const Attendance = () => {
 						Create Attendance List
 					</button>
 				</div>
-				<CheckIn onMarkAttendance={fetchAttendance} />
+				<CheckIn
+					onMarkAttendance={fetchAttendance}
+					setStudentStatus={setStudentId}
+					studentStatus={studentId}
+				/>
 			</div>
 			<section className="w-full">
 				<h2 className="text-2xl font-semibold text-gray-700 mb-4">

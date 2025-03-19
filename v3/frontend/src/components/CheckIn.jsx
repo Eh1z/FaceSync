@@ -2,11 +2,10 @@ import React, { useState, useRef, useEffect } from "react";
 import { getUsers, markAttendance } from "../api";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
-
 import * as faceapi from "@vladmandic/face-api";
 import CameraComponent from "./Camera";
 
-const CheckIn = ({ onMarkAttendance, onCancel }) => {
+const CheckIn = ({ studentId, setStudentId }) => {
 	const [users, setUsers] = useState([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [capturedImage, setCapturedImage] = useState(null);
@@ -135,9 +134,18 @@ const CheckIn = ({ onMarkAttendance, onCancel }) => {
 
 	const handleConfirm = () => {
 		if (bestMatchLabel !== "unknown") {
-			// Mark attendance if a valid match is found
-			onMarkAttendance(bestMatchLabel); // You can pass the bestMatchLabel to mark the attendance
-			toast.success(`${bestMatchLabel} marked as present`);
+			// Find the user whose name matches the bestMatchLabel
+			const matchedUser = users.find(
+				(user) => user.name === bestMatchLabel
+			);
+
+			if (matchedUser) {
+				// Use the user's _id (e.g., for marking attendance)
+				setStudentId(matchedUser._id);
+				toast.success(`${bestMatchLabel} marked as present`);
+			} else {
+				toast.error("No matching user found.");
+			}
 		} else {
 			toast.error("No matching user found.");
 		}

@@ -243,15 +243,43 @@ app.get("/attendance", async (req, res) => {
 	}
 });
 
-app.put("/attendance/:studentId", async (req, res) => {
+app.put("/attendance", async (req, res) => {
+	const { studentId, courseCode } = req.body;
+	//console.log(studentStatus, courseCode);
+
 	try {
-		const updatedAttendance = await Attendance.findOneAndUpdate(
-			{ userId: req.params.studentId },
-			req.body,
-			{ new: true }
+		// Find the most recent attendance record for the given courseCode
+		const updatedAttendance = await Attendance.findOne({ name: courseCode })
+			.sort({ createdAt: "desc" }) // Sort by most recent
+			.populate("course") // Populate course data (optional)
+			.lean(); // Convert to plain JavaScript object (if needed)
+
+		if (!updatedAttendance) {
+			return res
+				.status(404)
+				.json({ message: "Attendance record not found." });
+		}
+
+		// Find and update the student's status in the 'students' array
+		const student = updatedAttendance.students.find(
+			(student) => student.student === studentId
 		);
-		res.json(updatedAttendance);
+
+		if (student) {
+			student.status = "Present"; // Change status to "Present"
+			// Optionally: You can assign a dynamic status like `studentStatus` if needed.
+
+			// Save the updated attendance record
+			await updatedAttendance.save();
+
+			res.json(updatedAttendance); // Respond with the updated attendance record
+		} else {
+			res.status(404).json({
+				message: "Student not found in attendance list.",
+			});
+		}
 	} catch (error) {
+		console.error(error);
 		res.status(500).json({ message: "Failed to update attendance" });
 	}
 });
