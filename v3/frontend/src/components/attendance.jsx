@@ -68,7 +68,12 @@ const Attendance = () => {
 	}, [selectedCourse]);
 
 	useEffect(() => {
-		updateStudentAttendance(studentId, selectedCourse);
+		const revalidateAttendance = async () => {
+			await updateStudentAttendance(studentId, selectedCourse);
+			fetchAttendance();
+		};
+
+		revalidateAttendance();
 	}, [studentId, selectedCourse]);
 
 	useEffect(() => {

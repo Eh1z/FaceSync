@@ -35,18 +35,8 @@ const Dashboard = () => {
 			const ratioData = await getAttendanceRatio();
 			setAttendanceRatio(ratioData.data.ratio);
 
-			const recentActivityData = await getRecentActivity();
-			setRecentActivity(
-				Array.isArray(recentActivityData) ? recentActivityData : []
-			);
-
 			const trendsData = await getAttendanceTrends();
 			setAttendanceTrends(trendsData);
-
-			const upcomingCoursesData = await getUpcomingCourses();
-			setUpcomingCourses(
-				Array.isArray(upcomingCoursesData) ? upcomingCoursesData : []
-			);
 		} catch (error) {
 			toast.error("Failed to fetch dashboard data");
 		}
@@ -140,71 +130,6 @@ const Dashboard = () => {
 						id="attendanceTrendsChart"
 						className="h-64"
 					></canvas>
-				</div>
-
-				{/* Recent Activity */}
-				<div className="bg-white shadow-md rounded-lg p-6 mb-6">
-					<h2 className="text-2xl font-semibold text-gray-700 mb-4">
-						Recent Activity
-					</h2>
-					<ul className="space-y-4">
-						{recentActivity.length === 0 ? (
-							<p>No recent activity.</p>
-						) : (
-							recentActivity.map((activity) => (
-								<li
-									className="flex justify-between items-center"
-									key={activity._id}
-								>
-									<div>
-										<p className="text-gray-800 font-medium">
-											{activity.userId.name}
-										</p>
-										<p className="text-gray-600 text-sm">
-											{activity.createdAt}
-										</p>
-									</div>
-									<span
-										className={
-											activity.status === "Present"
-												? "text-green-600"
-												: "text-red-600"
-										}
-									>
-										{activity.status}
-									</span>
-								</li>
-							))
-						)}
-					</ul>
-				</div>
-
-				{/* Upcoming Courses */}
-				<div className="bg-white shadow-md rounded-lg p-6 mb-6">
-					<h2 className="text-2xl font-semibold text-gray-700 mb-4">
-						Upcoming Courses
-					</h2>
-					<ul>
-						{upcomingCourses.length === 0 ? (
-							<p>No upcoming courses.</p>
-						) : (
-							upcomingCourses.map((course) => (
-								<li key={course._id} className="mb-4">
-									<h3 className="text-xl font-semibold text-gray-800">
-										{course.courseName}
-									</h3>
-									<p className="text-gray-600">
-										{course.courseCode}
-									</p>
-									<p className="text-gray-600">
-										{course.lecturer
-											? course.lecturer.name
-											: "No Lecturer Assigned"}
-									</p>
-								</li>
-							))
-						)}
-					</ul>
 				</div>
 			</div>
 

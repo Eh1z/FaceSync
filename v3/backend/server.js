@@ -222,7 +222,7 @@ app.get("/attendance", async (req, res) => {
 
 		// Filter by course name
 		if (name) filter.course = name;
-		console.log(name);
+		//console.log(name);
 
 		// Fetch the most recent attendance record for the given course (if specified)
 		const records = await Attendance.find(filter) // Filter by course name
@@ -252,8 +252,7 @@ app.put("/attendance", async (req, res) => {
 		// Find the most recent attendance record for the given courseCode
 		const updatedAttendance = await Attendance.findOne({ name: courseCode })
 			.sort({ createdAt: "desc" }) // Sort by most recent
-			.populate("course") // Populate course data (optional)
-			.lean(); // Convert to plain JavaScript object (if needed)
+			.populate("course"); // Populate course data (optional)
 
 		if (!updatedAttendance) {
 			return res
@@ -268,9 +267,9 @@ app.put("/attendance", async (req, res) => {
 
 		if (student) {
 			student.status = "Present"; // Change status to "Present"
-			// Optionally: You can assign a dynamic status like `studentStatus` if needed.
 
 			// Save the updated attendance record
+			console.log(updatedAttendance);
 			await updatedAttendance.save();
 
 			res.json(updatedAttendance); // Respond with the updated attendance record
