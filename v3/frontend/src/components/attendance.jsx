@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import CheckIn from "../components/CheckIn";
-import ExportDropdown from "../components/ExportDropDown";
 import { aauLogo } from "./logo";
 import {
 	getAttendance,
@@ -23,7 +22,9 @@ const Attendance = () => {
 	const [selectedCourse, setSelectedCourse] = useState(null);
 	const [attendance, setAttendance] = useState([]);
 	const [studentId, setStudentId] = useState(null);
+	const [lecturer, setLecturer] = useState(null); // Add state for the lecturer
 
+	// Fetch courses based on selected level and semester
 	const fetchCourses = async () => {
 		if (selectedLevel && selectedSemester) {
 			try {
@@ -39,18 +40,7 @@ const Attendance = () => {
 		}
 	};
 
-	const createAttendance = async () => {
-		if (selectedCourse) {
-			try {
-				await createAttendanceList(selectedCourse);
-				fetchAttendance();
-			} catch (err) {
-				console.error("Error creating attendance list:", err);
-				toast.error("Failed to create attendance list.");
-			}
-		}
-	};
-
+	// Fetch attendance based on the selected course
 	const fetchAttendance = async () => {
 		if (selectedCourse) {
 			try {
@@ -63,13 +53,13 @@ const Attendance = () => {
 		}
 	};
 
+	// Handle PDF export
 	const handleExportPDF = () => {
 		const doc = new jsPDF();
 
 		const tableColumn = ["Name", "Mat. Number", "Status"];
 		const tableRows = [];
 
-		// Loop through the students and prepare the table rows
 		attendance[0]?.students.forEach((record) => {
 			const rowData = [
 				record.student?.name,
@@ -79,42 +69,51 @@ const Attendance = () => {
 			tableRows.push(rowData);
 		});
 
-		// Add the logo at the top of the document
-
+		// Add logo
 		const logo = aauLogo; // Replace with your Base64 string photo export
+		doc.addImage(logo, "PNG", 15, 10, 40, 10); // Adjust x, y, width, height
 
-		// Add the logo to the document (x, y, width, height)
-		doc.addImage(logo, "PNG", 160, 10, 35, 10); // Adjust x, y, width, height as needed
-
-		// Add title below the logo
-		doc.text(`${attendance[0].name} Attendance List`, 10, 30); // Adjust y position to avoid overlap with the logo
+		// Add title and lecturer
+		doc.setFontSize(12);
+		doc.setFont("helvetica", "bold");
+		doc.text("FACULTY OF PHYSICAL SCIENCES", 15, 30);
+		doc.text("DEPARTMENT OF COMPUTER SCIENCE", 15, 35);
+		doc.setFont("helvetica", "normal");
+		doc.text("CLASS ATTENDANCE LIST", 15, 50);
+		doc.text(`Course:  ${attendance[0].name || "Not Assigned"}`, 15, 55);
+		doc.text(`Lecturer:  ${lecturer?.name || "Not Assigned"}`, 15, 60);
 
 		// Use autoTable to add the table
 		doc.autoTable({
 			head: [tableColumn],
 			body: tableRows,
-			startY: 40, // Adjust the starting Y to leave space for the logo and title
+			startY: 70,
 		});
 
-		// Save the PDF
 		doc.save(`${attendance[0].name}_attendance_list.pdf`);
 	};
 
+	// When a course is selected, set the lecturer for that course
 	useEffect(() => {
-		fetchCourses();
-	}, [selectedLevel, selectedSemester]);
+		if (selectedCourse && courses.length > 0) {
+			const course = courses.find(
+				(course) => course.courseCode === selectedCourse
+			);
+			if (course) {
+				setLecturer(course.lecturer); // Assuming lecturer is part of the course object
+			}
+		}
+	}, [selectedCourse, courses]);
 
-	useEffect(() => {
-		const revalidateAttendance = async () => {
-			await updateStudentAttendance(studentId, selectedCourse);
-			fetchAttendance();
-		};
-		revalidateAttendance();
-	}, [studentId, selectedCourse]);
-
+	// Fetch attendance when selectedCourse changes
 	useEffect(() => {
 		fetchAttendance();
 	}, [selectedCourse]);
+
+	// Fetch courses when selectedLevel or selectedSemester changes
+	useEffect(() => {
+		fetchCourses();
+	}, [selectedLevel, selectedSemester]);
 
 	return (
 		<div className="w-full rounded-xl grid grid-cols-5 gap-5">
@@ -160,7 +159,7 @@ const Attendance = () => {
 						))}
 					</select>
 					<button
-						onClick={createAttendance}
+						onClick={createAttendanceList}
 						className="ml-4 p-2 bg-blue-500 text-white rounded"
 					>
 						Create Attendance List
