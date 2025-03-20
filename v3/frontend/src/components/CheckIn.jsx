@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { getUsers, markAttendance } from "../api";
+import { getUsers } from "../api";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
 import * as faceapi from "@vladmandic/face-api";

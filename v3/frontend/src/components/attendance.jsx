@@ -131,6 +131,16 @@ const Attendance = () => {
 		}
 	}, [createNewAttendance]);
 
+	// Fetch attendance when a student checks in
+	useEffect(() => {
+		const revalidateAttendance = async () => {
+			await updateStudentAttendance(studentId, selectedCourse);
+			fetchAttendance();
+		};
+
+		revalidateAttendance();
+	}, [studentId, selectedCourse]);
+
 	return (
 		<div className="w-full rounded-xl grid grid-cols-5 gap-5">
 			<div className="w-full col-span-2">

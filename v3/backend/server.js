@@ -248,7 +248,6 @@ app.get("/attendance", async (req, res) => {
 app.put("/attendance", async (req, res) => {
 	const { studentId, courseCode } = req.body;
 	console.log(studentId, courseCode);
-
 	try {
 		// Find the most recent attendance record for the given courseCode
 		const updatedAttendance = await Attendance.findOne({ name: courseCode })
