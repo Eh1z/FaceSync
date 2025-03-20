@@ -3,9 +3,7 @@ import {
 	getStudents,
 	getAttendance,
 	getAttendanceRatio,
-	getRecentActivity,
 	getAttendanceTrends,
-	getUpcomingCourses,
 } from "../api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
