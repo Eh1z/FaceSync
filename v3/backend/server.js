@@ -179,6 +179,7 @@ app.put("/users/:id", async (req, res) => {
 app.post("/attendance", async (req, res) => {
 	try {
 		const { courseCode } = req.body;
+		console.log("course code: ", req.params);
 
 		// Find the course based on the course code
 		const course = await Course.findOne({ courseCode });
@@ -205,7 +206,7 @@ app.post("/attendance", async (req, res) => {
 		});
 
 		// 5Save the attendance
-		console.log(newAttendance);
+		console.log("new attendance: ", newAttendance);
 		await newAttendance.save();
 
 		res.status(201).json(newAttendance);

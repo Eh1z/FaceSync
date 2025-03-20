@@ -12,6 +12,7 @@ import { CSVLink } from "react-csv"; // For CSV export
 import jsPDF from "jspdf"; // For PDF export
 import "jspdf-autotable";
 import "react-toastify/dist/ReactToastify.css";
+import LoadingSpinner from "./LoadingSpinner";
 
 const Attendance = () => {
 	const [levels] = useState(["100L", "200L", "300L", "400L", "500L"]);
@@ -23,6 +24,8 @@ const Attendance = () => {
 	const [attendance, setAttendance] = useState([]);
 	const [studentId, setStudentId] = useState(null);
 	const [lecturer, setLecturer] = useState(null); // Add state for the lecturer
+	const [createNewAttendance, setCreateNewAttendance] = useState(false);
+	const [isLoading, setIsLoading] = useState(false);
 
 	// Fetch courses based on selected level and semester
 	const fetchCourses = async () => {
@@ -44,8 +47,10 @@ const Attendance = () => {
 	const fetchAttendance = async () => {
 		if (selectedCourse) {
 			try {
+				setIsLoading(true);
 				const response = await getAttendance();
 				setAttendance(response.data);
+				setIsLoading(false);
 			} catch (err) {
 				toast.error("Failed to fetch attendance records.");
 				console.log(err);
@@ -115,6 +120,17 @@ const Attendance = () => {
 		fetchCourses();
 	}, [selectedLevel, selectedSemester]);
 
+	// Fetch attendance when new List is created
+	useEffect(() => {
+		if (createNewAttendance) {
+			const handleCreateAttendance = async () => {
+				await createAttendanceList(selectedCourse);
+				fetchAttendance();
+			};
+			handleCreateAttendance();
+		}
+	}, [createNewAttendance]);
+
 	return (
 		<div className="w-full rounded-xl grid grid-cols-5 gap-5">
 			<div className="w-full col-span-2">
@@ -159,7 +175,7 @@ const Attendance = () => {
 						))}
 					</select>
 					<button
-						onClick={createAttendanceList}
+						onClick={() => setCreateNewAttendance(true)}
 						className="ml-4 p-2 bg-blue-500 text-white rounded"
 					>
 						Create Attendance List
@@ -180,66 +196,84 @@ const Attendance = () => {
 				</h2>
 
 				<div className="bg-white shadow rounded-lg p-4">
-					{attendance.length === 0 ? (
-						<p className="text-center text-gray-500">
-							No attendance records yet.
-						</p>
+					{isLoading ? (
+						<div className="w-full flex justify-center items-center">
+							<LoadingSpinner />
+						</div>
 					) : (
 						<div>
-							<div className="flex justify-end mb-4">
-								<button
-									onClick={handleExportPDF}
-									className="bg-green-500 text-white py-2 px-4 rounded-md mr-4 hover:bg-green-600"
-								>
-									Export to PDF
-								</button>
-								<CSVLink
-									data={attendance[0]?.students.map(
-										(record) => [
-											record.student?.name,
-											record.student?.mat_num,
-											record.status,
-										]
-									)}
-									filename="attendance.csv"
-								>
-									<button className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">
-										Export to CSV
-									</button>
-								</CSVLink>
-							</div>
-
-							<table className="w-full table-auto border-collapse border border-gray-300">
-								<thead>
-									<tr className="text-left">
-										<th className="border-b p-2">
-											Student
-										</th>
-										<th className="border-b p-2">
-											Mat. Number
-										</th>
-										<th className="border-b p-2">Status</th>
-									</tr>
-								</thead>
-								<tbody>
-									{attendance[0]?.students.map((record) => (
-										<tr
-											key={record._id}
-											className="hover:bg-gray-100"
+							{attendance.length === 0 ? (
+								<p className="text-center text-gray-500">
+									No attendance records yet.
+								</p>
+							) : (
+								<div className="w-full">
+									<div className="flex justify-end mb-4">
+										<button
+											onClick={handleExportPDF}
+											className="bg-green-500 text-white py-2 px-4 rounded-md mr-4 hover:bg-green-600"
 										>
-											<td className="border-b p-2">
-												{record.student?.name}
-											</td>
-											<td className="border-b p-2">
-												{record.student?.mat_num}
-											</td>
-											<td className="border-b p-2">
-												{record.status}
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
+											Export to PDF
+										</button>
+										<CSVLink
+											data={attendance[0]?.students.map(
+												(record) => [
+													record.student?.name,
+													record.student?.mat_num,
+													record.status,
+												]
+											)}
+											filename="attendance.csv"
+										>
+											<button className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">
+												Export to CSV
+											</button>
+										</CSVLink>
+									</div>
+
+									<table className="w-full table-auto border-collapse border border-gray-300">
+										<thead>
+											<tr className="text-left">
+												<th className="border-b p-2">
+													Student
+												</th>
+												<th className="border-b p-2">
+													Mat. Number
+												</th>
+												<th className="border-b p-2">
+													Status
+												</th>
+											</tr>
+										</thead>
+										<tbody>
+											{attendance[0]?.students.map(
+												(record) => (
+													<tr
+														key={record._id}
+														className="hover:bg-gray-100"
+													>
+														<td className="border-b p-2">
+															{
+																record.student
+																	?.name
+															}
+														</td>
+														<td className="border-b p-2">
+															{
+																record.student
+																	?.mat_num
+															}
+														</td>
+														<td className="border-b p-2">
+															{record.status}
+														</td>
+													</tr>
+												)
+											)}
+										</tbody>
+									</table>
+								</div>
+							)}
 						</div>
 					)}
 				</div>
