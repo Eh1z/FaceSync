@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import CheckIn from "../components/CheckIn";
 import ExportDropdown from "../components/ExportDropDown";
+import { aauLogo } from "./logo";
 import {
 	getAttendance,
 	getCourses,
@@ -68,6 +69,7 @@ const Attendance = () => {
 		const tableColumn = ["Name", "Mat. Number", "Status"];
 		const tableRows = [];
 
+		// Loop through the students and prepare the table rows
 		attendance[0]?.students.forEach((record) => {
 			const rowData = [
 				record.student?.name,
@@ -76,16 +78,25 @@ const Attendance = () => {
 			];
 			tableRows.push(rowData);
 		});
-		// Add title
-		doc.text(`${attendance[0].name} Attendance List`, 14, 15);
 
-		// Use autoTable on the doc instance
+		// Add the logo at the top of the document
+
+		const logo = aauLogo; // Replace with your Base64 string photo export
+
+		// Add the logo to the document (x, y, width, height)
+		doc.addImage(logo, "PNG", 160, 10, 35, 10); // Adjust x, y, width, height as needed
+
+		// Add title below the logo
+		doc.text(`${attendance[0].name} Attendance List`, 10, 30); // Adjust y position to avoid overlap with the logo
+
+		// Use autoTable to add the table
 		doc.autoTable({
 			head: [tableColumn],
 			body: tableRows,
-			startY: 20,
+			startY: 40, // Adjust the starting Y to leave space for the logo and title
 		});
 
+		// Save the PDF
 		doc.save(`${attendance[0].name}_attendance_list.pdf`);
 	};
 
