@@ -16,11 +16,9 @@ export const getCourses = (level = "", semester = "") =>
 export const getStudents = () => axios.get(`${API_URL}/students`);
 export const getAttendanceRatio = () =>
 	axios.get(`${API_URL}/attendance-ratio`);
-export const getRecentActivity = () => axios.get(`${API_URL}/recent-activity`);
+
 export const getAttendanceTrends = () =>
 	axios.get(`${API_URL}/attendance-trends`);
-export const getUpcomingCourses = () =>
-	axios.get(`${API_URL}/upcoming-courses`);
 
 // Add Functions
 export const addUser = (user) => axios.post(`${API_URL}/users`, user);

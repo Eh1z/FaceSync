@@ -3,19 +3,20 @@ import CheckIn from "../components/CheckIn";
 import ExportDropdown from "../components/ExportDropDown";
 import {
 	getAttendance,
-	getUsers,
 	getCourses,
 	createAttendanceList,
 	updateStudentAttendance,
 } from "../api";
 import { toast } from "react-toastify";
+import { CSVLink } from "react-csv"; // For CSV export
+import jsPDF from "jspdf"; // For PDF export
+import "jspdf-autotable";
 import "react-toastify/dist/ReactToastify.css";
 
 const Attendance = () => {
 	const [levels] = useState(["100L", "200L", "300L", "400L", "500L"]);
 	const [semesters] = useState(["first", "second"]);
 	const [selectedLevel, setSelectedLevel] = useState("");
-	const [selectedDate, setSelectedDate] = useState(null);
 	const [selectedSemester, setSelectedSemester] = useState("");
 	const [courses, setCourses] = useState([]);
 	const [selectedCourse, setSelectedCourse] = useState(null);
@@ -40,7 +41,6 @@ const Attendance = () => {
 	const createAttendance = async () => {
 		if (selectedCourse) {
 			try {
-				//console.log("course code", selectedCourse);
 				await createAttendanceList(selectedCourse);
 				fetchAttendance();
 			} catch (err) {
@@ -55,7 +55,6 @@ const Attendance = () => {
 			try {
 				const response = await getAttendance();
 				setAttendance(response.data);
-				console.log("attendance data", attendance);
 			} catch (err) {
 				toast.error("Failed to fetch attendance records.");
 				console.log(err);
@@ -63,26 +62,52 @@ const Attendance = () => {
 		}
 	};
 
+	const handleExportPDF = () => {
+		const doc = new jsPDF();
+
+		const tableColumn = ["Name", "Mat. Number", "Status"];
+		const tableRows = [];
+
+		attendance[0]?.students.forEach((record) => {
+			const rowData = [
+				record.student?.name,
+				record.student?.mat_num,
+				record.status,
+			];
+			tableRows.push(rowData);
+		});
+		// Add title
+		doc.text(`${attendance[0].name} Attendance List`, 14, 15);
+
+		// Use autoTable on the doc instance
+		doc.autoTable({
+			head: [tableColumn],
+			body: tableRows,
+			startY: 20,
+		});
+
+		doc.save(`${attendance[0].name}_attendance_list.pdf`);
+	};
+
 	useEffect(() => {
-		fetchAttendance();
-	}, [selectedCourse]);
+		fetchCourses();
+	}, [selectedLevel, selectedSemester]);
 
 	useEffect(() => {
 		const revalidateAttendance = async () => {
 			await updateStudentAttendance(studentId, selectedCourse);
 			fetchAttendance();
 		};
-
 		revalidateAttendance();
 	}, [studentId, selectedCourse]);
 
 	useEffect(() => {
-		fetchCourses();
-	}, [selectedLevel, selectedSemester]);
+		fetchAttendance();
+	}, [selectedCourse]);
 
 	return (
-		<div className="w-full h-[800px] p-5 rounded-xl grid grid-cols-2 gap-5">
-			<div className="w-full">
+		<div className="w-full rounded-xl grid grid-cols-5 gap-5">
+			<div className="w-full col-span-2">
 				<h2 className="text-2xl font-semibold mb-4 text-gray-700">
 					Attendance Check-In
 				</h2>
@@ -136,7 +161,8 @@ const Attendance = () => {
 					studentId={studentId}
 				/>
 			</div>
-			<section className="w-full">
+
+			<section className="w-full col-span-3">
 				<h2 className="text-2xl font-semibold text-gray-700 mb-4">
 					{selectedCourse
 						? `${selectedCourse} Attendance List`
@@ -149,24 +175,62 @@ const Attendance = () => {
 							No attendance records yet.
 						</p>
 					) : (
-						<table className="w-full leading-normal">
-							<thead>
-								<tr className="w-full">
-									<th>Student</th>
-									<th>Mat. Number</th>
-									<th>Status</th>
-								</tr>
-							</thead>
-							<tbody>
-								{attendance[0].students.map((record) => (
-									<tr key={record._id}>
-										<td>{record.student?.name}</td>
-										<td>{record.student?.mat_num}</td>
-										<td>{record.status}</td>
+						<div>
+							<div className="flex justify-end mb-4">
+								<button
+									onClick={handleExportPDF}
+									className="bg-green-500 text-white py-2 px-4 rounded-md mr-4 hover:bg-green-600"
+								>
+									Export to PDF
+								</button>
+								<CSVLink
+									data={attendance[0]?.students.map(
+										(record) => [
+											record.student?.name,
+											record.student?.mat_num,
+											record.status,
+										]
+									)}
+									filename="attendance.csv"
+								>
+									<button className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">
+										Export to CSV
+									</button>
+								</CSVLink>
+							</div>
+
+							<table className="w-full table-auto border-collapse border border-gray-300">
+								<thead>
+									<tr className="text-left">
+										<th className="border-b p-2">
+											Student
+										</th>
+										<th className="border-b p-2">
+											Mat. Number
+										</th>
+										<th className="border-b p-2">Status</th>
 									</tr>
-								))}
-							</tbody>
-						</table>
+								</thead>
+								<tbody>
+									{attendance[0]?.students.map((record) => (
+										<tr
+											key={record._id}
+											className="hover:bg-gray-100"
+										>
+											<td className="border-b p-2">
+												{record.student?.name}
+											</td>
+											<td className="border-b p-2">
+												{record.student?.mat_num}
+											</td>
+											<td className="border-b p-2">
+												{record.status}
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
 					)}
 				</div>
 			</section>
