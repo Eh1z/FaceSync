@@ -1,17 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
-import CameraComponent from "./Camera";
 import { toast } from "react-toastify";
 import LoadingSpinner from "./LoadingSpinner";
-
 import * as faceapi from "@vladmandic/face-api";
 
-const Register = ({ onAddUser, onCancel, courses }) => {
+const Register = ({ onAddUser }) => {
 	const [step, setStep] = useState("form");
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
-	const [studentId, setStudentId] = useState("");
-	const [mat_num, setMat_num] = useState("");
-	const [selectedCourses, setSelectedCourses] = useState([]); // State to store selected courses
+	const [job, setJob] = useState("");
+	const [phone, setPhone] = useState("");
+	const [age, setAge] = useState("");
 	const [capturedImage, setCapturedImage] = useState(null);
 	const [faceData, setFaceData] = useState(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,9 +26,8 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 					faceapi.nets.ssdMobilenetv1.loadFromUri("/models"),
 					faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
 					faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
-					faceapi.nets.faceLandmark68TinyNet.loadFromUri("/models"),
 				]);
-				console.log("FaceAPI models loaded. ");
+				console.log("FaceAPI models loaded.");
 			} catch (error) {
 				toast.error("Failed to load face detection models.");
 				console.error(error);
@@ -39,30 +36,15 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 		loadModels();
 	}, []);
 
-	// Handle multi-select change for courses
-	const handleCourseChange = (e) => {
-		const selected = Array.from(
-			e.target.selectedOptions,
-			(option) => option.value
-		);
-		setSelectedCourses((prevSelectedCourses) => [
-			...prevSelectedCourses,
-			...selected.filter(
-				(course) => !prevSelectedCourses.includes(course)
-			),
-		]);
-	};
-
-	// Handle course removal
-	const handleRemoveCourse = (courseId) => {
-		setSelectedCourses((prev) => prev.filter((id) => id !== courseId));
-	};
-
 	const handleStartCapture = () => {
-		if (!name.trim() || !email.trim() || selectedCourses.length === 0) {
-			toast.error(
-				"Please enter name, email, and select at least one course."
-			);
+		if (
+			!name.trim() ||
+			!email.trim() ||
+			!job.trim() ||
+			!phone.trim() ||
+			!age.trim()
+		) {
+			toast.error("Please enter all required fields.");
 			return;
 		}
 		setStep("capturing");
@@ -106,15 +88,10 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 		ctx.drawImage(img, 0, 0);
 
 		// Detect a single face and compute its descriptor.
-		const useTinyModel = true;
 		const detection = await faceapi
 			.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
-			.withFaceLandmarks(useTinyModel)
+			.withFaceLandmarks()
 			.withFaceDescriptor();
-
-		//console.log("logiing results for testing: ", detection.landmarks);
-		const faceDescriptor = Array.from(detection.descriptor);
-		setFaceData(faceDescriptor);
 
 		if (!detection) {
 			toast.error("No face detected, please retake the photo.");
@@ -126,6 +103,10 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 		ctx.strokeStyle = "lime";
 		ctx.lineWidth = 2;
 		ctx.strokeRect(x, y, width, height);
+
+		// Store the face descriptor (an array of numbers)
+		const faceDescriptor = Array.from(detection.descriptor);
+		setFaceData(faceDescriptor);
 	};
 
 	// When preview step is reached, process the captured image.
@@ -136,7 +117,6 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 	}, [step, capturedImage]);
 
 	const handleConfirm = async () => {
-		console.log(faceData);
 		if (!capturedImage || !faceData) {
 			toast.error("Face data not available. Please retake the photo.");
 			return;
@@ -146,10 +126,10 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 		const user = {
 			name: name.trim(),
 			email: email.trim(),
-			mat_num: mat_num.trim(),
-			studentId: studentId.trim(),
+			job: job.trim(),
+			phone: phone.trim(),
+			age: age.trim(),
 			userImage: capturedImage, // Captured face image
-			courses: selectedCourses, // Selected course IDs
 			faceData: faceData,
 		};
 
@@ -160,9 +140,9 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 			setStep("form");
 			setName("");
 			setEmail("");
-			setStudentId("");
-			setMat_num("");
-			setSelectedCourses([]);
+			setJob("");
+			setPhone("");
+			setAge("");
 			setCapturedImage(null);
 			setFaceData(null);
 		} catch (error) {
@@ -180,7 +160,7 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 	}, [step]);
 
 	return (
-		<div className="w-full bg-white shadow-md rounded-lg p-6">
+		<div className="w-full p-6 bg-white rounded-lg shadow-md">
 			{step === "form" && (
 				<>
 					<form
@@ -189,7 +169,7 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 					>
 						<div>
 							<label
-								className="block text-gray-600 mb-1"
+								className="block mb-1 text-gray-600"
 								htmlFor="name"
 							>
 								Name
@@ -205,39 +185,7 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 						</div>
 						<div>
 							<label
-								className="block text-gray-600 mb-1"
-								htmlFor="studentId"
-							>
-								Student ID
-							</label>
-							<input
-								id="studentId"
-								type="text"
-								className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-								placeholder="Enter your Student ID"
-								value={studentId}
-								onChange={(e) => setStudentId(e.target.value)}
-							/>
-						</div>
-						<div>
-							<label
-								className="block text-gray-600 mb-1"
-								htmlFor="mat_num"
-							>
-								Mat. Number
-							</label>
-							<input
-								id="mat_num"
-								type="text"
-								className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-								placeholder="Enter your Mat Number"
-								value={mat_num}
-								onChange={(e) => setMat_num(e.target.value)}
-							/>
-						</div>
-						<div>
-							<label
-								className="block text-gray-600 mb-1"
+								className="block mb-1 text-gray-600"
 								htmlFor="email"
 							>
 								Email
@@ -251,87 +199,60 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 								onChange={(e) => setEmail(e.target.value)}
 							/>
 						</div>
-
-						{/* Select Courses */}
 						<div>
 							<label
-								className="block text-gray-600 mb-1"
-								htmlFor="courses"
+								className="block mb-1 text-gray-600"
+								htmlFor="job"
 							>
-								Select Courses
+								Job
 							</label>
-							<select
-								id="courses"
-								multiple
-								value={selectedCourses}
-								onChange={handleCourseChange}
+							<input
+								id="job"
+								type="text"
 								className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-							>
-								{courses &&
-									courses.map((course) => (
-										<option
-											key={course._id}
-											value={course._id}
-										>
-											{course.courseName} (
-											{course.courseCode})
-										</option>
-									))}
-							</select>
+								placeholder="Enter your job title"
+								value={job}
+								onChange={(e) => setJob(e.target.value)}
+							/>
 						</div>
-
-						{/* Display selected courses */}
-						{selectedCourses.length > 0 && (
-							<div className="mb-4">
-								<h4 className="font-semibold">
-									Selected Courses:
-								</h4>
-								<div className="flex flex-wrap gap-2">
-									{selectedCourses.map((courseId) => {
-										const courseObj = courses.find(
-											(course) => course._id === courseId
-										);
-										return (
-											<div
-												key={courseId}
-												className="flex items-center bg-gray-200 rounded px-2 py-1"
-											>
-												<span className="mr-2">
-													{courseObj
-														? courseObj.courseCode
-														: courseId}
-												</span>
-												<button
-													type="button"
-													onClick={() =>
-														handleRemoveCourse(
-															courseId
-														)
-													}
-													className="text-red-500"
-												>
-													x
-												</button>
-											</div>
-										);
-									})}
-								</div>
-							</div>
-						)}
-
+						<div>
+							<label
+								className="block mb-1 text-gray-600"
+								htmlFor="phone"
+							>
+								Phone
+							</label>
+							<input
+								id="phone"
+								type="text"
+								className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+								placeholder="Enter your phone number"
+								value={phone}
+								onChange={(e) => setPhone(e.target.value)}
+							/>
+						</div>
+						<div>
+							<label
+								className="block mb-1 text-gray-600"
+								htmlFor="age"
+							>
+								Age
+							</label>
+							<input
+								id="age"
+								type="number"
+								className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+								placeholder="Enter your age"
+								value={age}
+								onChange={(e) => setAge(e.target.value)}
+							/>
+						</div>
 						<button
 							type="button"
 							onClick={handleStartCapture}
-							className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-200"
+							className="w-full px-4 py-2 text-white transition duration-200 bg-blue-500 rounded-md hover:bg-blue-600"
 						>
 							Start Capture
-						</button>
-						<button
-							type="button"
-							onClick={onCancel}
-							className="w-full bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition duration-200"
-						>
-							Cancel
 						</button>
 					</form>
 				</>
@@ -339,14 +260,14 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 
 			{step === "capturing" && (
 				<>
-					<h2 className="text-xl font-semibold mb-4 text-gray-700">
+					<h2 className="mb-4 text-xl font-semibold text-gray-700">
 						Capture Your Face
 					</h2>
 					<CameraComponent ref={cameraRef} />
 					<button
 						type="button"
 						onClick={handleCapture}
-						className="w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition duration-200 mt-4"
+						className="w-full px-4 py-2 mt-4 text-white transition duration-200 bg-green-500 rounded-md hover:bg-green-600"
 					>
 						Capture
 					</button>
@@ -355,19 +276,18 @@ const Register = ({ onAddUser, onCancel, courses }) => {
 
 			{step === "preview" && (
 				<>
-					<h2 className="text-xl font-semibold mb-4 text-gray-700">
+					<h2 className="mb-4 text-xl font-semibold text-gray-700">
 						Review Your Image
 					</h2>
-					{/* Render the canvas with the face detection overlay */}
 					<canvas
 						ref={canvasRef}
-						className="w-full h-auto rounded-md mb-4"
+						className="w-full h-auto mb-4 rounded-md"
 					/>
 					<div className="flex justify-between">
 						<button
 							type="button"
 							onClick={handleRetake}
-							className="w-1/2 bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition duration-200 mr-2"
+							className="w-1/2 px-4 py-2 mr-2 text-white transition duration-200 bg-red-500 rounded-md hover:bg-red-600"
 						>
 							Retake
 						</button>

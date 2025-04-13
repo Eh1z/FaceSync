@@ -2,10 +2,9 @@ import React, { useState, useEffect } from "react";
 import CheckIn from "../components/CheckIn";
 import { aauLogo } from "./logo";
 import {
-	getAttendance,
-	getCourses,
-	createAttendanceList,
-	updateStudentAttendance,
+	getSessions,
+	createSessionAttendanceList,
+	updateAttendeeAttendance,
 } from "../api";
 import { toast } from "react-toastify";
 import { CSVLink } from "react-csv"; // For CSV export
@@ -15,40 +14,32 @@ import "react-toastify/dist/ReactToastify.css";
 import LoadingSpinner from "./LoadingSpinner";
 
 const Attendance = () => {
-	const [levels] = useState(["100L", "200L", "300L", "400L", "500L"]);
-	const [semesters] = useState(["first", "second"]);
-	const [selectedLevel, setSelectedLevel] = useState("");
-	const [selectedSemester, setSelectedSemester] = useState("");
-	const [courses, setCourses] = useState([]);
-	const [selectedCourse, setSelectedCourse] = useState(null);
+	// State variables
+	const [sessions, setSessions] = useState([]);
+	const [selectedSession, setSelectedSession] = useState(null);
 	const [attendance, setAttendance] = useState([]);
-	const [studentId, setStudentId] = useState(null);
-	const [lecturer, setLecturer] = useState(null); // Add state for the lecturer
-	const [createNewAttendance, setCreateNewAttendance] = useState(false);
+	const [attendeeId, setAttendeeId] = useState(null);
+	const [createNewSessionAttendance, setCreateNewSessionAttendance] =
+		useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 
-	// Fetch courses based on selected level and semester
-	const fetchCourses = async () => {
-		if (selectedLevel && selectedSemester) {
-			try {
-				const response = await getCourses(
-					selectedLevel,
-					selectedSemester
-				);
-				setCourses(response.data);
-			} catch (err) {
-				console.error("Error fetching courses:", err);
-				toast.error("Failed to fetch courses.");
-			}
+	// Fetch available sessions
+	const fetchSessions = async () => {
+		try {
+			const response = await getSessions();
+			setSessions(response.data);
+		} catch (err) {
+			console.error("Error fetching sessions:", err);
+			toast.error("Failed to fetch sessions.");
 		}
 	};
 
-	// Fetch attendance based on the selected course
+	// Fetch attendance for selected session
 	const fetchAttendance = async () => {
-		if (selectedCourse) {
+		if (selectedSession) {
 			try {
 				setIsLoading(true);
-				const response = await getAttendance();
+				const response = await getAttendance(selectedSession);
 				setAttendance(response.data);
 				setIsLoading(false);
 			} catch (err) {
@@ -58,17 +49,17 @@ const Attendance = () => {
 		}
 	};
 
-	// Handle PDF export
+	// Handle PDF export for session attendance
 	const handleExportPDF = () => {
 		const doc = new jsPDF();
 
-		const tableColumn = ["Name", "Mat. Number", "Status"];
+		const tableColumn = ["Name", "Phone", "Status"];
 		const tableRows = [];
 
-		attendance[0]?.students.forEach((record) => {
+		attendance[0]?.attendees.forEach((record) => {
 			const rowData = [
-				record.student?.name,
-				record.student?.mat_num,
+				record.attendee?.name,
+				record.attendee?.phone,
 				record.status,
 			];
 			tableRows.push(rowData);
@@ -78,136 +69,102 @@ const Attendance = () => {
 		const logo = aauLogo; // Replace with your Base64 string photo export
 		doc.addImage(logo, "PNG", 15, 10, 40, 10); // Adjust x, y, width, height
 
-		// Add title and lecturer
+		// Add title and session
 		doc.setFontSize(12);
 		doc.setFont("helvetica", "bold");
-		doc.text("FACULTY OF PHYSICAL SCIENCES", 15, 30);
-		doc.text("DEPARTMENT OF COMPUTER SCIENCE", 15, 35);
+		doc.text("CONFERENCE SESSION ATTENDANCE", 15, 30);
 		doc.setFont("helvetica", "normal");
-		doc.text("CLASS ATTENDANCE LIST", 15, 50);
-		doc.text(`Course:  ${attendance[0].name || "Not Assigned"}`, 15, 55);
-		doc.text(`Lecturer:  ${lecturer?.name || "Not Assigned"}`, 15, 60);
+		doc.text(`Session:  ${attendance[0].name || "Not Assigned"}`, 15, 50);
 
 		// Use autoTable to add the table
 		doc.autoTable({
 			head: [tableColumn],
 			body: tableRows,
-			startY: 70,
+			startY: 60,
 		});
 
 		doc.save(`${attendance[0].name}_attendance_list.pdf`);
 	};
 
-	// When a course is selected, set the lecturer for that course
-	useEffect(() => {
-		if (selectedCourse && courses.length > 0) {
-			const course = courses.find(
-				(course) => course.courseCode === selectedCourse
-			);
-			if (course) {
-				setLecturer(course.lecturer); // Assuming lecturer is part of the course object
-			}
-		}
-	}, [selectedCourse, courses]);
-
-	// Fetch attendance when selectedCourse changes
+	// Fetch attendance when selectedSession changes
 	useEffect(() => {
 		fetchAttendance();
-	}, [selectedCourse]);
+	}, [selectedSession]);
 
-	// Fetch courses when selectedLevel or selectedSemester changes
+	// Fetch sessions when the component mounts
 	useEffect(() => {
-		fetchCourses();
-	}, [selectedLevel, selectedSemester]);
+		fetchSessions();
+	}, []);
 
-	// Fetch attendance when new List is created
+	// Handle creating a new session attendance list
 	useEffect(() => {
-		if (createNewAttendance) {
+		if (createNewSessionAttendance) {
 			const handleCreateAttendance = async () => {
-				await createAttendanceList(selectedCourse);
+				await createSessionAttendanceList(selectedSession);
 				fetchAttendance();
 			};
 			handleCreateAttendance();
 		}
-	}, [createNewAttendance]);
+	}, [createNewSessionAttendance]);
 
-	// Fetch attendance when a student checks in
+	// Fetch attendance when a user checks in
 	useEffect(() => {
 		const revalidateAttendance = async () => {
-			await updateStudentAttendance(studentId, selectedCourse);
+			await updateAttendeeAttendance(attendeeId, selectedSession);
 			fetchAttendance();
 		};
 
 		revalidateAttendance();
-	}, [studentId, selectedCourse]);
+	}, [attendeeId, selectedSession]);
 
 	return (
-		<div className="w-full rounded-xl grid grid-cols-5 gap-5">
+		<div className="grid w-full grid-cols-5 gap-5 rounded-xl">
 			<div className="w-full col-span-2">
-				<h2 className="text-2xl font-semibold mb-4 text-gray-700">
-					Attendance Check-In
+				<h2 className="mb-4 text-2xl font-semibold text-gray-700">
+					Conference Session Check-In
 				</h2>
 				<div className="mb-4">
+					{/* Session selection */}
 					<select
-						value={selectedLevel}
-						onChange={(e) => setSelectedLevel(e.target.value)}
-						className="mr-4 p-2 border rounded"
+						value={selectedSession}
+						onChange={(e) => setSelectedSession(e.target.value)}
+						className="p-2 mr-4 border rounded"
 					>
-						<option value="">Select Level</option>
-						{levels.map((level) => (
-							<option key={level} value={level}>
-								{level}
+						<option value="">Select Session</option>
+						{sessions.map((session) => (
+							<option key={session._id} value={session._id}>
+								{session.name}
 							</option>
 						))}
 					</select>
-					<select
-						value={selectedSemester}
-						onChange={(e) => setSelectedSemester(e.target.value)}
-						className="mr-4 p-2 border rounded"
-					>
-						<option value="">Select Semester</option>
-						{semesters.map((semester) => (
-							<option key={semester} value={semester}>
-								{semester}
-							</option>
-						))}
-					</select>
-					<select
-						value={selectedCourse}
-						onChange={(e) => setSelectedCourse(e.target.value)}
-						className="p-2 border rounded"
-					>
-						<option value="">Select Course</option>
-						{courses.map((course) => (
-							<option key={course._id} value={course.courseCode}>
-								{course.courseName}
-							</option>
-						))}
-					</select>
+
+					{/* Create new session attendance list */}
 					<button
-						onClick={() => setCreateNewAttendance(true)}
-						className="ml-4 p-2 bg-blue-500 text-white rounded"
+						onClick={() => setCreateNewSessionAttendance(true)}
+						className="p-2 ml-4 text-white bg-blue-500 rounded"
 					>
 						Create Attendance List
 					</button>
 				</div>
+
+				{/* Check-in Component */}
 				<CheckIn
 					onMarkAttendance={fetchAttendance}
-					setStudentId={setStudentId}
-					studentId={studentId}
+					setAttendeeId={setAttendeeId}
+					attendeeId={attendeeId}
 				/>
 			</div>
 
 			<section className="w-full col-span-3">
-				<h2 className="text-2xl font-semibold text-gray-700 mb-4">
-					{selectedCourse
-						? `${selectedCourse} Attendance List`
+				<h2 className="mb-4 text-2xl font-semibold text-gray-700">
+					{selectedSession
+						? `${selectedSession} Attendance List`
 						: "Attendance List"}
 				</h2>
 
-				<div className="bg-white shadow rounded-lg p-4">
+				<div className="p-4 bg-white rounded-lg shadow">
 					{isLoading ? (
-						<div className="w-full flex justify-center items-center">
+						<div className="flex items-center justify-center w-full">
 							<LoadingSpinner />
 						</div>
 					) : (
@@ -221,60 +178,60 @@ const Attendance = () => {
 									<div className="flex justify-end mb-4">
 										<button
 											onClick={handleExportPDF}
-											className="bg-green-500 text-white py-2 px-4 rounded-md mr-4 hover:bg-green-600"
+											className="px-4 py-2 mr-4 text-white bg-green-500 rounded-md hover:bg-green-600"
 										>
 											Export to PDF
 										</button>
 										<CSVLink
-											data={attendance[0]?.students.map(
+											data={attendance[0]?.attendees.map(
 												(record) => [
-													record.student?.name,
-													record.student?.mat_num,
+													record.attendee?.name,
+													record.attendee?.phone,
 													record.status,
 												]
 											)}
 											filename="attendance.csv"
 										>
-											<button className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">
+											<button className="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600">
 												Export to CSV
 											</button>
 										</CSVLink>
 									</div>
 
-									<table className="w-full table-auto border-collapse border border-gray-300">
+									<table className="w-full border border-collapse border-gray-300 table-auto">
 										<thead>
 											<tr className="text-left">
-												<th className="border-b p-2">
-													Student
+												<th className="p-2 border-b">
+													Attendee
 												</th>
-												<th className="border-b p-2">
-													Mat. Number
+												<th className="p-2 border-b">
+													Phone
 												</th>
-												<th className="border-b p-2">
+												<th className="p-2 border-b">
 													Status
 												</th>
 											</tr>
 										</thead>
 										<tbody>
-											{attendance[0]?.students.map(
+											{attendance[0]?.attendees.map(
 												(record) => (
 													<tr
 														key={record._id}
 														className="hover:bg-gray-100"
 													>
-														<td className="border-b p-2">
+														<td className="p-2 border-b">
 															{
-																record.student
+																record.attendee
 																	?.name
 															}
 														</td>
-														<td className="border-b p-2">
+														<td className="p-2 border-b">
 															{
-																record.student
-																	?.mat_num
+																record.attendee
+																	?.phone
 															}
 														</td>
-														<td className="border-b p-2">
+														<td className="p-2 border-b">
 															{record.status}
 														</td>
 													</tr>

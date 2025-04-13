@@ -26,6 +26,11 @@ const Sidebar = () => {
 			icon: <PiStudentFill />,
 		},
 		{
+			path: "/dashboard/sessions",
+			name: "session registration",
+			icon: <PiStudentFill />,
+		},
+		{
 			path: "/dashboard/attendees",
 			name: "registered guests",
 			icon: <PiStudentFill />,

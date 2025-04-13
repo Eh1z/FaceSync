@@ -25,6 +25,7 @@ const Layout = () => {
 						<Route path="attendees" element={<Attendees />} />
 						<Route path="registration" element={<Registration />} />
 						<Route path="speakers" element={<Speakers />} />
+						<Route path="sessions" element={<Sessions />} />
 						<Route path="checkIn" element={<Attendance />} />
 					</Routes>
 				</div>

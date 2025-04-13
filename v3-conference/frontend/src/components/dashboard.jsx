@@ -1,21 +1,20 @@
 import React, { useState, useEffect } from "react";
 import {
-	getStudents,
-	getAttendance,
-	getAttendanceRatio,
-	getAttendanceTrends,
+	getSpeakers,
+	getAttendees,
+	getAttendeeStats,
+	getConferenceTrends,
 } from "../api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Chart from "chart.js/auto"; // Import chart library
 
 const Dashboard = () => {
-	const [students, setStudents] = useState(0);
-	const [attendance, setAttendance] = useState(0);
-	const [attendanceRatio, setAttendanceRatio] = useState(0);
+	const [attendees, setAttendees] = useState(0);
+	const [speakers, setSpeakers] = useState(0);
+	const [attendeeStats, setAttendeeStats] = useState({});
 	const [recentActivity, setRecentActivity] = useState([]);
-	const [attendanceTrends, setAttendanceTrends] = useState([]);
-	const [upcomingCourses, setUpcomingCourses] = useState([]);
+	const [conferenceTrends, setConferenceTrends] = useState([]);
 
 	// Fetch data on component mount
 	useEffect(() => {
@@ -24,46 +23,46 @@ const Dashboard = () => {
 
 	const fetchDashboardData = async () => {
 		try {
-			const studentData = await getStudents();
-			setStudents(studentData.data.totalStudents);
+			const attendeeData = await getAttendees();
+			setAttendees(attendeeData.data.totalAttendees);
 
-			const attendanceData = await getAttendance();
-			setAttendance(attendanceData.data.length);
+			const speakerData = await getSpeakers();
+			setSpeakers(speakerData.data.totalSpeakers);
 
-			const ratioData = await getAttendanceRatio();
-			setAttendanceRatio(ratioData.data.ratio);
+			const statsData = await getAttendeeStats();
+			setAttendeeStats(statsData.data);
 
-			const trendsData = await getAttendanceTrends();
-			setAttendanceTrends(trendsData);
+			const trendsData = await getConferenceTrends();
+			setConferenceTrends(trendsData.data);
 		} catch (error) {
 			toast.error("Failed to fetch dashboard data");
 		}
 	};
 
-	// Chart for Attendance Trends
+	// Chart for Conference Trends
 	useEffect(() => {
-		if (attendanceTrends.data) {
+		if (conferenceTrends) {
 			const ctx = document
-				.getElementById("attendanceTrendsChart")
+				.getElementById("conferenceTrendsChart")
 				.getContext("2d");
 
 			// Destroy the previous chart if it exists
-			if (window.attendanceChart) {
-				window.attendanceChart.destroy();
+			if (window.conferenceChart) {
+				window.conferenceChart.destroy();
 			}
 
 			// Create new chart instance
-			window.attendanceChart = new Chart(ctx, {
+			window.conferenceChart = new Chart(ctx, {
 				type: "line",
 				data: {
-					labels: attendanceTrends.data.map(
-						(trend) => `Month ${trend._id}`
+					labels: conferenceTrends.map(
+						(trend) => `Month ${trend.month}`
 					),
 					datasets: [
 						{
-							label: "Attendance",
-							data: attendanceTrends.data.map(
-								(trend) => trend.totalAttendance
+							label: "Attendee Growth",
+							data: conferenceTrends.map(
+								(trend) => trend.attendees
 							),
 							fill: false,
 							borderColor: "rgba(75,192,192,1)",
@@ -80,52 +79,54 @@ const Dashboard = () => {
 				},
 			});
 		}
-	}, [attendanceTrends]); // Re-run the chart rendering when attendanceTrends changes
+	}, [conferenceTrends]); // Re-run the chart rendering when conferenceTrends changes
 
 	return (
-		<div className="min-h-screen bg-gray-100 p-6">
-			<div className="max-w-7xl mx-auto">
-				<h1 className="text-3xl font-bold text-gray-800 mb-6">
+		<div className="min-h-screen p-6 bg-gray-100">
+			<div className="mx-auto max-w-7xl">
+				<h1 className="mb-6 text-3xl font-bold text-gray-800">
 					Dashboard
 				</h1>
 
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-					{/* Total Students */}
-					<div className="bg-white shadow-md rounded-lg p-6">
+				<div className="grid grid-cols-1 gap-6 mb-6 md:grid-cols-3">
+					{/* Total Attendees */}
+					<div className="p-6 bg-white rounded-lg shadow-md">
 						<h2 className="text-xl font-semibold text-gray-700">
-							Total Students
+							Total Attendees
 						</h2>
-						<p className="text-4xl font-bold text-blue-600 mt-4">
-							{students || 0}
+						<p className="mt-4 text-4xl font-bold text-blue-600">
+							{attendees || 0}
 						</p>
 					</div>
-					{/* Total Attendance */}
-					<div className="bg-white shadow-md rounded-lg p-6">
+
+					{/* Total Speakers */}
+					<div className="p-6 bg-white rounded-lg shadow-md">
 						<h2 className="text-xl font-semibold text-gray-700">
-							Total Attendance
+							Total Speakers
 						</h2>
-						<p className="text-4xl font-bold text-green-600 mt-4">
-							{attendance || 0}
+						<p className="mt-4 text-4xl font-bold text-green-600">
+							{speakers || 0}
 						</p>
 					</div>
-					{/* Attendance/Student Ratio */}
-					<div className="bg-white shadow-md rounded-lg p-6">
+
+					{/* Attendee Stats */}
+					<div className="p-6 bg-white rounded-lg shadow-md">
 						<h2 className="text-xl font-semibold text-gray-700">
-							Attendance/Student Ratio
+							Attendee Stats
 						</h2>
-						<p className="text-4xl font-bold text-purple-600 mt-4">
-							{attendanceRatio || 0}
+						<p className="mt-4 text-4xl font-bold text-purple-600">
+							{attendeeStats.registrationRate || 0}% Registered
 						</p>
 					</div>
 				</div>
 
-				{/* Attendance Trends */}
-				<div className="bg-white shadow-md rounded-lg p-6 mb-6">
-					<h2 className="text-2xl font-semibold text-gray-700 mb-4">
-						Attendance Trends
+				{/* Conference Trends */}
+				<div className="p-6 mb-6 bg-white rounded-lg shadow-md">
+					<h2 className="mb-4 text-2xl font-semibold text-gray-700">
+						Conference Trends
 					</h2>
 					<canvas
-						id="attendanceTrendsChart"
+						id="conferenceTrendsChart"
 						className="h-64"
 					></canvas>
 				</div>

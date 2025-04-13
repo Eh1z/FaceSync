@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { getUsers, addUser, updateUser, deleteUser } from "../api";
+import {
+	getAttendees,
+	addAttendee,
+	updateAttendee,
+	deleteAttendee,
+} from "../api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Papa from "papaparse";
@@ -9,26 +14,23 @@ import "jspdf-autotable";
 
 const Attendees = () => {
 	// State variables
-	const [knownFaces, setKnownFaces] = useState([]);
-
-	// States for editing student
-	const [editingStudent, setEditingStudent] = useState(null);
+	const [attendees, setAttendees] = useState([]);
+	const [editingAttendee, setEditingAttendee] = useState(null);
 	const [editingName, setEditingName] = useState("");
 	const [editingEmail, setEditingEmail] = useState("");
-	const [editingStudentId, setEditingStudentId] = useState("");
-	const [editingMatNum, setEditingMatNum] = useState("");
+	const [editingJob, setEditingJob] = useState("");
+	const [editingPhone, setEditingPhone] = useState("");
+	const [editingAge, setEditingAge] = useState("");
 	const [editingUserImage, setEditingUserImage] = useState("");
-	const [editingCourses, setEditingCourses] = useState(""); // comma separated string
 
-	// Function to fetch all users
-	const fetchUsers = async () => {
+	// Function to fetch all attendees
+	const fetchAttendees = async () => {
 		try {
-			const response = await getUsers();
-			setKnownFaces(response.data);
-			console.log(knownFaces);
+			const response = await getAttendees();
+			setAttendees(response.data);
 		} catch (err) {
-			console.error("Error fetching users:", err);
-			toast.error("Failed to fetch users.");
+			console.error("Error fetching attendees:", err);
+			toast.error("Failed to fetch attendees.");
 		}
 	};
 
@@ -41,29 +43,31 @@ const Attendees = () => {
 					const data = result.data;
 					// Loop through each row in the CSV
 					for (let row of data) {
-						// Prepare user data according to the schema
-						const user = {
+						// Prepare attendee data according to the schema
+						const attendee = {
 							name: row.name,
 							email: row.email,
-							studentId: row.studentId,
-							mat_num: row.mat_num,
+							job: row.job,
+							phone: row.phone,
+							age: row.age,
 							userImage: row.userImage || "",
-							courses: row.courses ? row.courses.split(",") : [],
 						};
 
 						try {
-							// Send each user data to the backend
-							await addUser(user);
+							// Send each attendee data to the backend
+							await addAttendee(attendee);
 							toast.success(
-								`User ${user.name} added successfully.`
+								`Attendee ${attendee.name} added successfully.`
 							);
 						} catch (err) {
-							console.error("Error adding user:", err);
-							toast.error(`Failed to add user ${user.name}`);
+							console.error("Error adding attendee:", err);
+							toast.error(
+								`Failed to add attendee ${attendee.name}`
+							);
 						}
 					}
-					// Re-fetch users after import
-					fetchUsers();
+					// Re-fetch attendees after import
+					fetchAttendees();
 				},
 				header: true,
 				skipEmptyLines: true,
@@ -71,40 +75,43 @@ const Attendees = () => {
 		}
 	};
 
-	// CSV export configuration (excluding courses)
+	// CSV export configuration (without student-related fields)
 	const csvHeaders = [
 		{ label: "Name", key: "name" },
 		{ label: "Email", key: "email" },
-		{ label: "Student ID", key: "studentId" },
-		{ label: "Mat Num", key: "mat_num" },
+		{ label: "Job", key: "job" },
+		{ label: "Phone", key: "phone" },
+		{ label: "Age", key: "age" },
 	];
 
-	// Transform the knownFaces data for CSV export (excluding courses)
-	const exportData = knownFaces.map((record) => ({
+	// Transform the attendees data for CSV export
+	const exportData = attendees.map((record) => ({
 		name: record.name,
 		email: record.email,
-		studentId: record.studentId,
-		mat_num: record.mat_num,
+		job: record.job,
+		phone: record.phone,
+		age: record.age,
 	}));
 
-	// Function to export the student list as a PDF (excluding courses)
+	// Function to export the attendee list as a PDF
 	const exportPDF = () => {
 		const doc = new jsPDF();
-		const tableColumn = ["Name", "Email", "Student ID", "Mat Num"];
+		const tableColumn = ["Name", "Email", "Job", "Phone", "Age"];
 		const tableRows = [];
 
-		knownFaces.forEach((record) => {
+		attendees.forEach((record) => {
 			const rowData = [
 				record.name,
 				record.email,
-				record.studentId,
-				record.mat_num,
+				record.job,
+				record.phone,
+				record.age,
 			];
 			tableRows.push(rowData);
 		});
 
 		// Add title
-		doc.text("Student List", 14, 15);
+		doc.text("Attendee List", 14, 15);
 
 		// Use autoTable on the doc instance
 		doc.autoTable({
@@ -113,194 +120,178 @@ const Attendees = () => {
 			startY: 20,
 		});
 
-		doc.save("student_list.pdf");
+		doc.save("attendee_list.pdf");
 	};
 
-	// Handle Edit Click: populate modal fields with the selected student's data
-	const handleEditStudentClick = (student) => {
-		setEditingStudent(student);
-		setEditingName(student.name);
-		setEditingEmail(student.email);
-		setEditingStudentId(student.studentId);
-		setEditingMatNum(student.mat_num);
-		setEditingUserImage(student.userImage);
-		// Convert courses array to comma separated string (if available)
-		setEditingCourses(
-			student.courses && student.courses.length
-				? student.courses.join(", ")
-				: ""
-		);
+	// Handle Edit Click: populate modal fields with the selected attendee's data
+	const handleEditAttendeeClick = (attendee) => {
+		setEditingAttendee(attendee);
+		setEditingName(attendee.name);
+		setEditingEmail(attendee.email);
+		setEditingJob(attendee.job);
+		setEditingPhone(attendee.phone);
+		setEditingAge(attendee.age);
+		setEditingUserImage(attendee.userImage);
 	};
 
 	// Handle Edit Cancel: reset editing state
-	const handleEditStudentCancel = () => {
-		setEditingStudent(null);
+	const handleEditAttendeeCancel = () => {
+		setEditingAttendee(null);
 		setEditingName("");
 		setEditingEmail("");
-		setEditingStudentId("");
-		setEditingMatNum("");
+		setEditingJob("");
+		setEditingPhone("");
+		setEditingAge("");
 		setEditingUserImage("");
-		setEditingCourses("");
 	};
 
-	// Handle Edit Submit: send updated student data to the backend
-	const handleEditStudentSubmit = async (e) => {
+	// Handle Edit Submit: send updated attendee data to the backend
+	const handleEditAttendeeSubmit = async (e) => {
 		e.preventDefault();
 		if (
 			!editingName.trim() ||
 			!editingEmail.trim() ||
-			!editingStudentId.trim() ||
-			!editingMatNum.trim()
+			!editingJob.trim() ||
+			!editingPhone.trim() ||
+			!editingAge.trim()
 		) {
-			toast.error("Name, Email, Student ID, and Mat Num are required.");
+			toast.error("All fields are required.");
 			return;
 		}
-		const updatedStudent = {
+		const updatedAttendee = {
 			name: editingName.trim(),
 			email: editingEmail.trim(),
-			studentId: editingStudentId.trim(),
-			mat_num: editingMatNum.trim(),
+			job: editingJob.trim(),
+			phone: editingPhone.trim(),
+			age: editingAge.trim(),
 			userImage: editingUserImage.trim(),
-			courses: editingCourses
-				? editingCourses.split(",").map((course) => course.trim())
-				: [],
 		};
 		try {
-			await updateUser(editingStudent._id, updatedStudent);
-			toast.success("Student updated successfully!");
-			handleEditStudentCancel();
-			fetchUsers();
+			await updateAttendee(editingAttendee._id, updatedAttendee);
+			toast.success("Attendee updated successfully!");
+			handleEditAttendeeCancel();
+			fetchAttendees();
 		} catch (error) {
-			console.error("Error updating student:", error);
-			toast.error("Failed to update student.");
+			console.error("Error updating attendee:", error);
+			toast.error("Failed to update attendee.");
 		}
 	};
 
-	// Handle Delete Student
-	const handleDeleteStudent = async (studentId) => {
+	// Handle Delete Attendee
+	const handleDeleteAttendee = async (attendeeId) => {
 		try {
-			await deleteUser(studentId);
-			toast.success("Student deleted successfully!");
-			fetchUsers();
+			await deleteAttendee(attendeeId);
+			toast.success("Attendee deleted successfully!");
+			fetchAttendees();
 		} catch (error) {
-			console.error("Error deleting student:", error);
-			toast.error("Failed to delete student.");
+			console.error("Error deleting attendee:", error);
+			toast.error("Failed to delete attendee.");
 		}
 	};
 
-	// Fetch user records on component mount
+	// Fetch attendees on component mount
 	useEffect(() => {
-		fetchUsers();
+		fetchAttendees();
 	}, []);
 
 	return (
-		<div className="w-full">
-			<section className="w-full">
-				<h2 className="mb-4 text-2xl font-semibold text-gray-700">
-					Student List
-				</h2>
-				<div className="p-4 bg-white rounded shadow">
-					{/* CSV File Upload */}
-					<input
-						type="file"
-						accept=".csv"
-						onChange={handleCSVUpload}
-						className="p-2 mb-4 border border-gray-300 rounded"
-					/>
+		<div className="w-full p-6 bg-gray-100">
+			<h2 className="mb-6 text-2xl font-semibold text-gray-700">
+				Manage Attendees
+			</h2>
 
-					{/* Export Buttons */}
-					<div className="flex justify-end mb-4">
-						<CSVLink
-							data={exportData}
-							headers={csvHeaders}
-							filename="student_list.csv"
-							className="px-4 py-2 mr-2 text-white bg-blue-500 rounded"
-						>
-							Export as CSV
-						</CSVLink>
-						<button
-							onClick={exportPDF}
-							className="px-4 py-2 text-white bg-red-500 rounded"
-						>
-							Export as PDF
-						</button>
-					</div>
+			{/* CSV File Upload */}
+			<input
+				type="file"
+				accept=".csv"
+				onChange={handleCSVUpload}
+				className="p-2 mb-4 border border-gray-300 rounded"
+			/>
 
-					{knownFaces.length === 0 ? (
-						<p className="text-center text-gray-500">
-							No student records yet.
-						</p>
-					) : (
-						<table className="min-w-full table-auto">
-							<thead>
-								<tr>
-									<th className="px-4 py-2 border">Name</th>
-									<th className="px-4 py-2 border">Email</th>
-									<th className="px-4 py-2 border">
-										Student ID
-									</th>
-									<th className="px-4 py-2 border">
-										Mat Num
-									</th>
-									<th className="px-4 py-2 border">
-										Actions
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{knownFaces.map((record, index) => (
-									<tr key={record._id || index}>
-										<td className="px-4 py-2 border">
-											{record.name}
-										</td>
-										<td className="px-4 py-2 border">
-											{record.email}
-										</td>
-										<td className="px-4 py-2 border">
-											{record.studentId}
-										</td>
-										<td className="px-4 py-2 border">
-											{record.mat_num}
-										</td>
-										<td className="px-4 py-2 border">
-											<button
-												onClick={() =>
-													handleEditStudentClick(
-														record
-													)
-												}
-												className="px-2 py-1 mr-2 text-white bg-yellow-500 rounded"
-											>
-												Edit
-											</button>
-											<button
-												onClick={() =>
-													handleDeleteStudent(
-														record._id
-													)
-												}
-												className="px-2 py-1 text-white bg-red-500 rounded"
-											>
-												Delete
-											</button>
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-					)}
-				</div>
-			</section>
+			{/* Export Buttons */}
+			<div className="flex justify-end mb-6">
+				<CSVLink
+					data={exportData}
+					headers={csvHeaders}
+					filename="attendee_list.csv"
+					className="px-4 py-2 mr-2 text-white bg-blue-500 rounded"
+				>
+					Export as CSV
+				</CSVLink>
+				<button
+					onClick={exportPDF}
+					className="px-4 py-2 text-white bg-red-500 rounded"
+				>
+					Export as PDF
+				</button>
+			</div>
 
-			{/* Edit Modal */}
-			{editingStudent && (
+			{/* Attendee List Table */}
+			{attendees.length === 0 ? (
+				<p className="text-center text-gray-500">No attendees found.</p>
+			) : (
+				<table className="min-w-full bg-white rounded-lg shadow-md table-auto">
+					<thead>
+						<tr>
+							<th className="px-4 py-2 border">Name</th>
+							<th className="px-4 py-2 border">Email</th>
+							<th className="px-4 py-2 border">Job</th>
+							<th className="px-4 py-2 border">Phone</th>
+							<th className="px-4 py-2 border">Age</th>
+							<th className="px-4 py-2 border">Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						{attendees.map((attendee) => (
+							<tr key={attendee._id}>
+								<td className="px-4 py-2 border">
+									{attendee.name}
+								</td>
+								<td className="px-4 py-2 border">
+									{attendee.email}
+								</td>
+								<td className="px-4 py-2 border">
+									{attendee.job}
+								</td>
+								<td className="px-4 py-2 border">
+									{attendee.phone}
+								</td>
+								<td className="px-4 py-2 border">
+									{attendee.age}
+								</td>
+								<td className="px-4 py-2 border">
+									<button
+										onClick={() =>
+											handleEditAttendeeClick(attendee)
+										}
+										className="px-2 py-1 mr-2 text-white bg-yellow-500 rounded"
+									>
+										Edit
+									</button>
+									<button
+										onClick={() =>
+											handleDeleteAttendee(attendee._id)
+										}
+										className="px-2 py-1 text-white bg-red-500 rounded"
+									>
+										Delete
+									</button>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			)}
+
+			{/* Edit Attendee Modal */}
+			{editingAttendee && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
 					<div className="w-full max-w-lg p-6 bg-white rounded shadow">
 						<h3 className="mb-4 text-xl font-semibold">
-							Edit Student
+							Edit Attendee
 						</h3>
 						<form
-							onSubmit={handleEditStudentSubmit}
+							onSubmit={handleEditAttendeeSubmit}
 							className="space-y-4"
 						>
 							<div>
@@ -333,13 +324,13 @@ const Attendees = () => {
 							</div>
 							<div>
 								<label className="block mb-1 text-gray-700">
-									Student ID
+									Job
 								</label>
 								<input
 									type="text"
-									value={editingStudentId}
+									value={editingJob}
 									onChange={(e) =>
-										setEditingStudentId(e.target.value)
+										setEditingJob(e.target.value)
 									}
 									className="w-full p-2 border rounded"
 									required
@@ -347,13 +338,27 @@ const Attendees = () => {
 							</div>
 							<div>
 								<label className="block mb-1 text-gray-700">
-									Mat Num
+									Phone
 								</label>
 								<input
 									type="text"
-									value={editingMatNum}
+									value={editingPhone}
 									onChange={(e) =>
-										setEditingMatNum(e.target.value)
+										setEditingPhone(e.target.value)
+									}
+									className="w-full p-2 border rounded"
+									required
+								/>
+							</div>
+							<div>
+								<label className="block mb-1 text-gray-700">
+									Age
+								</label>
+								<input
+									type="text"
+									value={editingAge}
+									onChange={(e) =>
+										setEditingAge(e.target.value)
 									}
 									className="w-full p-2 border rounded"
 									required
@@ -372,23 +377,10 @@ const Attendees = () => {
 									className="w-full p-2 border rounded"
 								/>
 							</div>
-							<div>
-								<label className="block mb-1 text-gray-700">
-									Courses (comma separated)
-								</label>
-								<input
-									type="text"
-									value={editingCourses}
-									onChange={(e) =>
-										setEditingCourses(e.target.value)
-									}
-									className="w-full p-2 border rounded"
-								/>
-							</div>
 							<div className="flex justify-end space-x-4">
 								<button
 									type="button"
-									onClick={handleEditStudentCancel}
+									onClick={handleEditAttendeeCancel}
 									className="px-4 py-2 text-white transition duration-200 bg-gray-500 rounded hover:bg-gray-600"
 								>
 									Cancel

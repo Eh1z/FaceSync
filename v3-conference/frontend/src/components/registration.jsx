@@ -1,30 +1,13 @@
-// src/components/Registration.js
-import React, { useState, useEffect } from "react";
-import { addUser, getCourses } from "../api";
+import React, { useState } from "react";
+import { addUser } from "../api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Register from "./Register";
 
 const Registration = () => {
-	const [courses, setCourses] = useState([]);
-
-	useEffect(() => {
-		// Fetch available courses from backend
-		const fetchCourses = async () => {
-			try {
-				const response = await getCourses();
-				console.log("courses: ", response.data);
-				setCourses(response.data);
-			} catch (error) {
-				console.error("Error fetching courses:", error);
-			}
-		};
-		fetchCourses();
-	}, []);
-
 	const handleAddUser = async (user) => {
 		try {
-			// user now includes courses (array of course IDs)
+			// Register the user with basic details and face data
 			await addUser(user);
 			toast.success("User registered successfully!");
 			// Optionally refresh users or reset state here
@@ -35,11 +18,11 @@ const Registration = () => {
 	};
 
 	return (
-		<div className="w-full max-w-[800px]">
-			<h2 className="text-2xl font-semibold mb-4 text-gray-700">
-				Register Student
+		<div className="w-full max-w-[800px] mx-auto p-6 bg-white shadow rounded">
+			<h2 className="mb-4 text-2xl font-semibold text-gray-700">
+				Register Attendee
 			</h2>
-			<Register courses={courses} onAddUser={handleAddUser} />
+			<Register onAddUser={handleAddUser} />
 			<ToastContainer
 				position="top-right"
 				autoClose={5000}
