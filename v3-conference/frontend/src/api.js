@@ -5,46 +5,35 @@ import axios from "axios";
 const API_URL = "http://localhost:5000";
 
 // Fetch Functions
-export const getUsers = () => axios.get(`${API_URL}/users`);
-export const getAttendance = (name = "") =>
-	axios.get(`${API_URL}/attendance`, { name });
-export const getLecturers = () => axios.get(`${API_URL}/lecturers`);
-export const getCourses = (level = "", semester = "") =>
-	axios.get(`${API_URL}/courses?level=${level}&semester=${semester}`);
-
-// New Fetch Functions for Dashboard Data
-export const getStudents = () => axios.get(`${API_URL}/students`);
-export const getAttendanceRatio = () =>
-	axios.get(`${API_URL}/attendance-ratio`);
-
-export const getAttendanceTrends = () =>
-	axios.get(`${API_URL}/attendance-trends`);
+export const getAttendees = (sessionId = "") =>
+	axios.get(`${API_URL}/attendees?sessionId=${sessionId}`);
+export const getSessions = () => axios.get(`${API_URL}/sessions`);
+export const getSpeakers = () => axios.get(`${API_URL}/speakers`);
+export const getConferenceStats = () =>
+	axios.get(`${API_URL}/conference-stats`);
 
 // Add Functions
-export const addUser = (user) => axios.post(`${API_URL}/users`, user);
-export const addLecturer = (lecturer) =>
-	axios.post(`${API_URL}/lecturers`, lecturer);
-export const addCourse = (course) => axios.post(`${API_URL}/courses`, course);
-export const createAttendanceList = (courseCode) =>
-	axios.post(`${API_URL}/attendance`, { courseCode });
+export const addAttendee = (attendee) =>
+	axios.post(`${API_URL}/attendees`, attendee);
+export const addSession = (session) =>
+	axios.post(`${API_URL}/sessions`, session);
+export const addSpeaker = (speaker) =>
+	axios.post(`${API_URL}/speakers`, speaker);
 
 // Update Functions
-export const markAttendance = (userId) =>
-	axios.post(`${API_URL}/attendance`, { userId });
-export const updateLecturer = (id, data) =>
-	axios.put(`${API_URL}/lecturers/${id}`, data);
-export const updateCourse = (id, updatedCourse) =>
-	axios.put(`${API_URL}/courses/${id}`, updatedCourse);
-// New Update Function for Users
-export const updateUser = (id, data) =>
-	axios.put(`${API_URL}/users/${id}`, data);
-
-// New Update Functions for Dashboard Data
-export const updateStudentAttendance = (studentId, courseCode) =>
-	axios.put(`${API_URL}/attendance`, { studentId, courseCode });
+export const updateAttendee = (id, data) =>
+	axios.put(`${API_URL}/attendees/${id}`, data);
+export const updateSession = (id, updatedSession) =>
+	axios.put(`${API_URL}/sessions/${id}`, updatedSession);
+export const updateSpeaker = (id, updatedSpeaker) =>
+	axios.put(`${API_URL}/speakers/${id}`, updatedSpeaker);
 
 // Delete Functions
-export const deleteUser = (id) => axios.delete(`${API_URL}/users/${id}`);
-export const deleteLecturer = (id) =>
-	axios.delete(`${API_URL}/lecturers/${id}`);
-export const deleteCourse = (id) => axios.delete(`${API_URL}/courses/${id}`);
+export const deleteAttendee = (id) =>
+	axios.delete(`${API_URL}/attendees/${id}`);
+export const deleteSession = (id) => axios.delete(`${API_URL}/sessions/${id}`);
+export const deleteSpeaker = (id) => axios.delete(`${API_URL}/speakers/${id}`);
+
+// Attendance Functions (for session check-in)
+export const markAttendanceForSession = (attendeeId, sessionId) =>
+	axios.post(`${API_URL}/attendance`, { attendeeId, sessionId });
