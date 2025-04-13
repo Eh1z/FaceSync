@@ -7,7 +7,7 @@ import { CSVLink } from "react-csv";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
-const Students = () => {
+const Attendees = () => {
 	// State variables
 	const [knownFaces, setKnownFaces] = useState([]);
 
@@ -196,16 +196,16 @@ const Students = () => {
 	return (
 		<div className="w-full">
 			<section className="w-full">
-				<h2 className="text-2xl font-semibold mb-4 text-gray-700">
+				<h2 className="mb-4 text-2xl font-semibold text-gray-700">
 					Student List
 				</h2>
-				<div className="bg-white shadow rounded p-4">
+				<div className="p-4 bg-white rounded shadow">
 					{/* CSV File Upload */}
 					<input
 						type="file"
 						accept=".csv"
 						onChange={handleCSVUpload}
-						className="mb-4 p-2 border border-gray-300 rounded"
+						className="p-2 mb-4 border border-gray-300 rounded"
 					/>
 
 					{/* Export Buttons */}
@@ -214,13 +214,13 @@ const Students = () => {
 							data={exportData}
 							headers={csvHeaders}
 							filename="student_list.csv"
-							className="mr-2 bg-blue-500 text-white px-4 py-2 rounded"
+							className="px-4 py-2 mr-2 text-white bg-blue-500 rounded"
 						>
 							Export as CSV
 						</CSVLink>
 						<button
 							onClick={exportPDF}
-							className="bg-red-500 text-white px-4 py-2 rounded"
+							className="px-4 py-2 text-white bg-red-500 rounded"
 						>
 							Export as PDF
 						</button>
@@ -269,7 +269,7 @@ const Students = () => {
 														record
 													)
 												}
-												className="bg-yellow-500 text-white py-1 px-2 rounded mr-2"
+												className="px-2 py-1 mr-2 text-white bg-yellow-500 rounded"
 											>
 												Edit
 											</button>
@@ -279,7 +279,7 @@ const Students = () => {
 														record._id
 													)
 												}
-												className="bg-red-500 text-white py-1 px-2 rounded"
+												className="px-2 py-1 text-white bg-red-500 rounded"
 											>
 												Delete
 											</button>
@@ -294,9 +294,9 @@ const Students = () => {
 
 			{/* Edit Modal */}
 			{editingStudent && (
-				<div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-					<div className="bg-white p-6 rounded shadow max-w-lg w-full">
-						<h3 className="text-xl font-semibold mb-4">
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+					<div className="w-full max-w-lg p-6 bg-white rounded shadow">
+						<h3 className="mb-4 text-xl font-semibold">
 							Edit Student
 						</h3>
 						<form
@@ -304,7 +304,7 @@ const Students = () => {
 							className="space-y-4"
 						>
 							<div>
-								<label className="block text-gray-700 mb-1">
+								<label className="block mb-1 text-gray-700">
 									Name
 								</label>
 								<input
@@ -313,12 +313,12 @@ const Students = () => {
 									onChange={(e) =>
 										setEditingName(e.target.value)
 									}
-									className="w-full border p-2 rounded"
+									className="w-full p-2 border rounded"
 									required
 								/>
 							</div>
 							<div>
-								<label className="block text-gray-700 mb-1">
+								<label className="block mb-1 text-gray-700">
 									Email
 								</label>
 								<input
@@ -327,12 +327,12 @@ const Students = () => {
 									onChange={(e) =>
 										setEditingEmail(e.target.value)
 									}
-									className="w-full border p-2 rounded"
+									className="w-full p-2 border rounded"
 									required
 								/>
 							</div>
 							<div>
-								<label className="block text-gray-700 mb-1">
+								<label className="block mb-1 text-gray-700">
 									Student ID
 								</label>
 								<input
@@ -341,12 +341,12 @@ const Students = () => {
 									onChange={(e) =>
 										setEditingStudentId(e.target.value)
 									}
-									className="w-full border p-2 rounded"
+									className="w-full p-2 border rounded"
 									required
 								/>
 							</div>
 							<div>
-								<label className="block text-gray-700 mb-1">
+								<label className="block mb-1 text-gray-700">
 									Mat Num
 								</label>
 								<input
@@ -355,12 +355,12 @@ const Students = () => {
 									onChange={(e) =>
 										setEditingMatNum(e.target.value)
 									}
-									className="w-full border p-2 rounded"
+									className="w-full p-2 border rounded"
 									required
 								/>
 							</div>
 							<div>
-								<label className="block text-gray-700 mb-1">
+								<label className="block mb-1 text-gray-700">
 									User Image URL
 								</label>
 								<input
@@ -369,11 +369,11 @@ const Students = () => {
 									onChange={(e) =>
 										setEditingUserImage(e.target.value)
 									}
-									className="w-full border p-2 rounded"
+									className="w-full p-2 border rounded"
 								/>
 							</div>
 							<div>
-								<label className="block text-gray-700 mb-1">
+								<label className="block mb-1 text-gray-700">
 									Courses (comma separated)
 								</label>
 								<input
@@ -382,20 +382,20 @@ const Students = () => {
 									onChange={(e) =>
 										setEditingCourses(e.target.value)
 									}
-									className="w-full border p-2 rounded"
+									className="w-full p-2 border rounded"
 								/>
 							</div>
 							<div className="flex justify-end space-x-4">
 								<button
 									type="button"
 									onClick={handleEditStudentCancel}
-									className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition duration-200"
+									className="px-4 py-2 text-white transition duration-200 bg-gray-500 rounded hover:bg-gray-600"
 								>
 									Cancel
 								</button>
 								<button
 									type="submit"
-									className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition duration-200"
+									className="px-4 py-2 text-white transition duration-200 bg-green-500 rounded hover:bg-green-600"
 								>
 									Save Changes
 								</button>
@@ -414,4 +414,4 @@ const Students = () => {
 	);
 };
 
-export default Students;
+export default Attendees;

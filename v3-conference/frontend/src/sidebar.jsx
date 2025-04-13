@@ -12,46 +12,33 @@ const Sidebar = () => {
 		{ path: "/dashboard", name: "dashboard", icon: <TbLayoutDashboard /> },
 		{
 			path: "/dashboard/attendance",
-			name: "attendance",
+			name: "Check In",
 			icon: <IoIosPeople />,
 		},
 		{
 			path: "/dashboard/registration",
-			name: "student registration",
+			name: "Attendee registration",
 			icon: <PiStudentFill />,
 		},
 		{
-			path: "/dashboard/lecturers",
-			name: "lecturer registration",
+			path: "/dashboard/speakers",
+			name: "speaker registration",
 			icon: <PiStudentFill />,
 		},
 		{
-			path: "/dashboard/courses",
-			name: "course registration",
+			path: "/dashboard/attendees",
+			name: "registered guests",
 			icon: <PiStudentFill />,
-		},
-
-		{
-			path: "/dashboard/students",
-			name: "students report",
-			icon: <PiStudentFill />,
-		},
-
-		{ path: "/dashboard/support", name: "support", icon: <BiSupport /> },
-		{
-			path: "/dashboard/settings",
-			name: "settings",
-			icon: <MdOutlineSettings />,
 		},
 	];
 
 	return (
 		<div className="flex flex-col gap-5 items-start justify-start w-[300px] h-screen p-5">
 			<div className="w-full flex items-center justify-center p-3 bg-[--secondary] rounded-xl font-bold text-xl">
-				<span className="text-[--accent]">Face</span>Sync
+				<span className="text-[--accent]">FS</span>Conf
 				<span className="text-[--accent]">_</span>
 			</div>
-			<div className="w-full flex flex-col gap-6 items-center">
+			<div className="flex flex-col items-center w-full gap-6">
 				{links.map((item) => (
 					<a
 						href={item.path}

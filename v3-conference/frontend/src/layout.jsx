@@ -2,14 +2,11 @@ import React from "react";
 import Sidebar from "./sidebar";
 import Navbar from "./navbar";
 import { Routes, Route } from "react-router-dom";
-import Students from "./components/Students";
+import Attendees from "./components/attendees";
 import Attendance from "./components/attendance";
-import Settings from "./components/settings";
-import Support from "./components/support";
+import Speakers from "./components/speakers";
 import Dashboard from "./components/dashboard";
-import Courses from "./components/courses";
 import Registration from "./components/registration";
-import Lecturers from "./components/lecturers";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -25,13 +22,10 @@ const Layout = () => {
 					<Navbar />
 					<Routes>
 						<Route index element={<Dashboard />} />
-						<Route path="students" element={<Students />} />
-						<Route path="courses" element={<Courses />} />
+						<Route path="attendees" element={<Attendees />} />
 						<Route path="registration" element={<Registration />} />
-						<Route path="lecturers" element={<Lecturers />} />
-						<Route path="attendance" element={<Attendance />} />
-						<Route path="settings" element={<Settings />} />
-						<Route path="support" element={<Support />} />
+						<Route path="speakers" element={<Speakers />} />
+						<Route path="checkIn" element={<Attendance />} />
 					</Routes>
 				</div>
 			</div>

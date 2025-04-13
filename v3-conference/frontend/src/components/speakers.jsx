@@ -9,7 +9,7 @@ import {
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const Lecturers = () => {
+const Speakers = () => {
 	const [lecturers, setLecturers] = useState([]);
 	const [courses, setCourses] = useState([]);
 	const [name, setName] = useState("");
@@ -157,7 +157,7 @@ const Lecturers = () => {
 	};
 
 	return (
-		<div className="w-full mx-auto p-6">
+		<div className="w-full p-6 mx-auto">
 			{/* ToastContainer with containerId "A" */}
 			<ToastContainer
 				containerId="A"
@@ -165,16 +165,16 @@ const Lecturers = () => {
 				autoClose={5000}
 				hideProgressBar={true}
 			/>
-			<h2 className="text-2xl font-bold mb-4">Lecturers</h2>
+			<h2 className="mb-4 text-2xl font-bold">Lecturers</h2>
 
 			{/* Form to add a new lecturer */}
 			<div className="max-w-[800px] bg-white p-4 rounded shadow mb-8">
-				<h3 className="text-xl font-semibold mb-4">Add New Lecturer</h3>
+				<h3 className="mb-4 text-xl font-semibold">Add New Lecturer</h3>
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div>
 						<label
 							htmlFor="lecturerName"
-							className="block text-gray-700 mb-1"
+							className="block mb-1 text-gray-700"
 						>
 							Name
 						</label>
@@ -184,14 +184,14 @@ const Lecturers = () => {
 							placeholder="Enter lecturer name"
 							value={name}
 							onChange={(e) => setName(e.target.value)}
-							className="w-full border p-2 rounded"
+							className="w-full p-2 border rounded"
 							required
 						/>
 					</div>
 					<div>
 						<label
 							htmlFor="lecturerEmail"
-							className="block text-gray-700 mb-1"
+							className="block mb-1 text-gray-700"
 						>
 							Email
 						</label>
@@ -201,7 +201,7 @@ const Lecturers = () => {
 							placeholder="Enter lecturer email"
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
-							className="w-full border p-2 rounded"
+							className="w-full p-2 border rounded"
 							required
 						/>
 					</div>
@@ -218,7 +218,7 @@ const Lecturers = () => {
 									return (
 										<div
 											key={courseId}
-											className="flex items-center bg-gray-200 rounded px-2 py-1"
+											className="flex items-center px-2 py-1 bg-gray-200 rounded"
 										>
 											<span className="mr-2">
 												{courseObj
@@ -244,7 +244,7 @@ const Lecturers = () => {
 					<div>
 						<label
 							htmlFor="lecturerCourses"
-							className="block text-gray-700 mb-1"
+							className="block mb-1 text-gray-700"
 						>
 							Assign Courses
 						</label>
@@ -253,7 +253,7 @@ const Lecturers = () => {
 							multiple
 							value={selectedCourses}
 							onChange={handleCourseChange}
-							className="w-full border p-2 rounded"
+							className="w-full p-2 border rounded"
 						>
 							{courses.map((course) => (
 								<option key={course._id} value={course._id}>
@@ -264,7 +264,7 @@ const Lecturers = () => {
 					</div>
 					<button
 						type="submit"
-						className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-200"
+						className="px-4 py-2 text-white transition duration-200 bg-blue-500 rounded hover:bg-blue-600"
 					>
 						Add Lecturer
 					</button>
@@ -272,8 +272,8 @@ const Lecturers = () => {
 			</div>
 
 			{/* List of existing lecturers */}
-			<div className="bg-white p-4 rounded shadow">
-				<h3 className="text-xl font-semibold mb-4">
+			<div className="p-4 bg-white rounded shadow">
+				<h3 className="mb-4 text-xl font-semibold">
 					Existing Lecturers
 				</h3>
 				{lecturers.length === 0 ? (
@@ -282,16 +282,16 @@ const Lecturers = () => {
 					<table className="min-w-full divide-y divide-gray-200">
 						<thead>
 							<tr>
-								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
 									Name
 								</th>
-								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
 									Email
 								</th>
-								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
 									Courses
 								</th>
-								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
 									Actions
 								</th>
 							</tr>
@@ -322,7 +322,7 @@ const Lecturers = () => {
 											onClick={() =>
 												handleEditClick(lecturer)
 											}
-											className="bg-yellow-500 text-white py-1 px-2 rounded hover:bg-yellow-600 transition duration-200 mr-2"
+											className="px-2 py-1 mr-2 text-white transition duration-200 bg-yellow-500 rounded hover:bg-yellow-600"
 										>
 											Edit
 										</button>
@@ -332,7 +332,7 @@ const Lecturers = () => {
 													lecturer._id
 												)
 											}
-											className="bg-red-500 text-white py-1 px-2 rounded hover:bg-red-600 transition duration-200"
+											className="px-2 py-1 text-white transition duration-200 bg-red-500 rounded hover:bg-red-600"
 										>
 											Delete
 										</button>
@@ -346,16 +346,16 @@ const Lecturers = () => {
 
 			{/* Edit Lecturer Modal */}
 			{editingLecturer && (
-				<div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
 					<div className="bg-white p-6 rounded shadow max-w-[800px] w-full">
-						<h3 className="text-xl font-semibold mb-4">
+						<h3 className="mb-4 text-xl font-semibold">
 							Edit Lecturer
 						</h3>
 						<form onSubmit={handleEditSubmit} className="space-y-4">
 							<div>
 								<label
 									htmlFor="editingName"
-									className="block text-gray-700 mb-1"
+									className="block mb-1 text-gray-700"
 								>
 									Name
 								</label>
@@ -367,14 +367,14 @@ const Lecturers = () => {
 									onChange={(e) =>
 										setEditingName(e.target.value)
 									}
-									className="w-full border p-2 rounded"
+									className="w-full p-2 border rounded"
 									required
 								/>
 							</div>
 							<div>
 								<label
 									htmlFor="editingEmail"
-									className="block text-gray-700 mb-1"
+									className="block mb-1 text-gray-700"
 								>
 									Email
 								</label>
@@ -386,7 +386,7 @@ const Lecturers = () => {
 									onChange={(e) =>
 										setEditingEmail(e.target.value)
 									}
-									className="w-full border p-2 rounded"
+									className="w-full p-2 border rounded"
 									required
 								/>
 							</div>
@@ -407,7 +407,7 @@ const Lecturers = () => {
 												return (
 													<div
 														key={courseId}
-														className="flex items-center bg-gray-200 rounded px-2 py-1"
+														className="flex items-center px-2 py-1 bg-gray-200 rounded"
 													>
 														<span className="mr-2">
 															{courseObj
@@ -436,7 +436,7 @@ const Lecturers = () => {
 							<div>
 								<label
 									htmlFor="editingCourses"
-									className="block text-gray-700 mb-1"
+									className="block mb-1 text-gray-700"
 								>
 									Assign Courses
 								</label>
@@ -445,7 +445,7 @@ const Lecturers = () => {
 									multiple
 									value={editingSelectedCourses}
 									onChange={handleEditingCourseChange}
-									className="w-full border p-2 rounded"
+									className="w-full p-2 border rounded"
 								>
 									{courses.map((course) => (
 										<option
@@ -462,13 +462,13 @@ const Lecturers = () => {
 								<button
 									type="button"
 									onClick={handleEditCancel}
-									className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition duration-200"
+									className="px-4 py-2 text-white transition duration-200 bg-gray-500 rounded hover:bg-gray-600"
 								>
 									Cancel
 								</button>
 								<button
 									type="submit"
-									className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition duration-200"
+									className="px-4 py-2 text-white transition duration-200 bg-green-500 rounded hover:bg-green-600"
 								>
 									Save Changes
 								</button>
@@ -481,4 +481,4 @@ const Lecturers = () => {
 	);
 };
 
-export default Lecturers;
+export default Speakers;
